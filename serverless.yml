@@ -7,7 +7,7 @@ plugins:
 
 custom:
   stage: ${opt:stage, self:provider.stage}
-  tableName: ${self:custom.stage}-pomafocus-tasks
+  tableName: ${self:custom.stage}-tasks
   tableThroughputs:
     prod: 5
     default: 1
@@ -37,7 +37,7 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: 
-        - "Fn::GetAtt": [ NotesTable, Arn ]
+        - "Fn::GetAtt": [ TasksTable , Arn ]
 functions:
   create:
     handler: createNote.main

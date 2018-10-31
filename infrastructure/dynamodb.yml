@@ -1,5 +1,5 @@
 Resources:
-  NotesTable:
+  TasksTable:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: ${self:custom.tableName}
