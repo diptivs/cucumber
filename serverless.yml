@@ -1,0 +1,85 @@
+# NOTE: update this with your service name
+service: pomafocus-api
+
+plugins:
+  - serverless-webpack
+  - serverless-offline
+
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  tableName: ${self:custom.stage}-pomafocus-tasks
+  tableThroughputs:
+    prod: 5
+    default: 1
+  tableThroughput:
+    ${self:custom.tableThroughputs.${self:custom.stage}, self:custom.tableThroughputs.default}
+  webpack:
+    webpackConfig: ./webpack.config.js
+    includeModules: true
+
+provider:
+  name: aws
+  runtime: nodejs8.10
+  stage: dev
+  region: us-west-2
+
+  environment:
+    tableName: ${self:custom.tableName}
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: 
+        - "Fn::GetAtt": [ NotesTable, Arn ]
+functions:
+  create:
+    handler: createNote.main
+    events:
+      - http:
+          path: notes
+          method: post
+          cors: true
+          authorizer: aws_iam
+  retrieve:
+    handler: retrieveNote.main
+    events:
+        - http:
+            path: notes/{id}
+            method: get
+            cors: true
+            authorizer: aws_iam
+  list:
+    handler: listNotes.main
+    events:
+        - http:
+            path: notes
+            method: get
+            cors: true
+            authorizer: aws_iam
+  update:
+    handler: updateNote.main
+    events:
+      - http:
+          path: notes/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  delete:
+    handler: deleteNote.main
+    events:
+      - http:
+          path: notes/{id}
+          method: delete
+          cors: true
+          authorizer: aws_iam
+resources:
+  - ${file(infrastructure/dynamodb.yml)}
+  - ${file(infrastructure/cognito-userPool.yml)}
+  - ${file(infrastructure/cognito-identityPool.yml)}

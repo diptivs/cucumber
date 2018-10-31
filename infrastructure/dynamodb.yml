@@ -1,0 +1,19 @@
+Resources:
+  NotesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.tableName}
+      AttributeDefinitions:
+        - AttributeName: taskID
+          AttributeType: S
+        - AttributeName: projectID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: taskID
+          KeyType: HASH
+        - AttributeName: projectID
+          KeyType: RANGE
+      # Set the capacity based on the stage
+      ProvisionedThroughput:
+        ReadCapacityUnits: ${self:custom.tableThroughput}
+        WriteCapacityUnits: ${self:custom.tableThroughput}
