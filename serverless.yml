@@ -6,8 +6,10 @@ plugins:
   - serverless-offline
 
 custom:
-  stage: ${opt:stage, self:provider.stage}
-  tableName: ${self:custom.stage}-tasks
+  stage: ${opt:stage, self:provider.stage}  
+  userstableName: ${self:custom.stage}-users
+  projectstableName: ${self:custom.stage}-projects
+  taskstableName: ${self:custom.stage}-tasks
   tableThroughputs:
     prod: 5
     default: 1
@@ -24,7 +26,9 @@ provider:
   region: us-west-2
 
   environment:
-    tableName: ${self:custom.tableName}
+    userstableName: ${self:custom.userstableName}
+    projectstableName: ${self:custom.projectstableName}
+    taskstableName: ${self:custom.taskstableName}
 
   iamRoleStatements:
     - Effect: Allow
@@ -37,48 +41,90 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
       Resource: 
+        - "Fn::GetAtt": [ UsersTable , Arn ]
+        - "Fn::GetAtt": [ ProjectsTable , Arn ]
         - "Fn::GetAtt": [ TasksTable , Arn ]
 functions:
-  create:
-    handler: createNote.main
+  createUser:
+    handler: userHandler.create
     events:
       - http:
-          path: notes
+          path: api/user
           method: post
           cors: true
           authorizer: aws_iam
-  retrieve:
-    handler: retrieveNote.main
+  retrieveUser:
+    handler: userHandler.retrieve
     events:
         - http:
-            path: notes/{id}
+            path: api/user/{id}
             method: get
             cors: true
-            authorizer: aws_iam
-  list:
-    handler: listNotes.main
-    events:
-        - http:
-            path: notes
-            method: get
-            cors: true
-            authorizer: aws_iam
-  update:
-    handler: updateNote.main
+            authorizer: aws_iam  
+  deleteUser:
+    handler: userHandler.deleteUser
     events:
       - http:
-          path: notes/{id}
-          method: put
-          cors: true
-          authorizer: aws_iam
-  delete:
-    handler: deleteNote.main
-    events:
-      - http:
-          path: notes/{id}
+          path: api/user/{id}
           method: delete
           cors: true
           authorizer: aws_iam
+  updateUser:
+    handler: userHandler.update
+    events:
+      - http:
+          path: api/user/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  createProject:
+    handler: projectHandler.create
+    events:
+      - http:
+          path: api/project
+          method: post
+          cors: true
+          authorizer: aws_iam
+  retrieveProject:
+    handler: projectHandler.retrieve
+    events:
+        - http:
+            path: api/project/{id}
+            method: get
+            cors: true
+            authorizer: aws_iam  
+  deleteProject:
+    handler: projectHandler.deleteProject
+    events:
+      - http:
+          path: api/project/{id}
+          method: delete
+          cors: true
+          authorizer: aws_iam 
+  createTask:
+    handler: taskHandler.create
+    events:
+      - http:
+          path: api/task
+          method: post
+          cors: true
+          authorizer: aws_iam
+  retrieveTask:
+    handler: taskHandler.retrieve
+    events:
+        - http:
+            path: api/task/{id}
+            method: get
+            cors: true
+            authorizer: aws_iam  
+  deleteTask:
+    handler: taskHandler.deleteTask
+    events:
+      - http:
+          path: api/task/{id}
+          method: delete
+          cors: true
+          authorizer: aws_iam 
 resources:
   - ${file(infrastructure/dynamodb.yml)}
   - ${file(infrastructure/cognito-userPool.yml)}

@@ -1,0 +1,8 @@
+{
+  "body": "{\"firstName\":\"User\",\"lastName\":\"userlast2\", \"projectId\":[\"6e\",\"7e\"] ,\"taskId\":[\"8h\",\"9g\"] ,\"role\":\"developer\"}",
+  "requestContext": {
+    "identity": {
+      "cognitoIdentityId": "USER-SUB-101"
+    }
+  }
+}

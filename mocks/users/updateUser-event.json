@@ -1,0 +1,6 @@
+{
+"body": "{\"firstName\":\"updated_last_name\"}",
+"pathParameters": {
+"id": "USER-SUB-101"
+}
+}

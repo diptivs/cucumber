@@ -1,0 +1,11 @@
+{
+"body": "{\"taskDescription\":\"Initial Setup\",\"taskPomodoraCount\":\"5\"}",
+"pathParameters": {
+"id": "610d5af0-e472-11e8-99bc-8d67a631d89e"
+},
+"requestContext": {
+"identity": {
+"cognitoIdentityId": "USER-SUB-1234"
+}
+}
+}
