@@ -59,7 +59,7 @@ export async function listManagerProjects(event, context, callback) {
 		'#projectOwner': 'projectOwner',
 		},
 		ExpressionAttributeValues: {
-        ':userId': event.pathParameters.id		
+        ':userId': event.requestContext.identity.cognitoIdentityId		
 		},
 	};
 		
@@ -79,7 +79,8 @@ export async function listManagerProjects(event, context, callback) {
 }
 //Lists all projects of the developer working on
 export async function listDeveloperProjects(event, context, callback) {
-	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();
+	const data = JSON.parse(event.body);	
 	const params = {
 		TableName: process.env.projectstableName,
 		FilterExpression: 'contains (#projectContributors, :userId)',
@@ -87,13 +88,14 @@ export async function listDeveloperProjects(event, context, callback) {
 		'#projectContributors': 'projectContributors',
 		},
 		ExpressionAttributeValues: {
-        ':userId': event.pathParameters.id		
+        ':userId': data.userId	
 		},
 	};
 		
 	try {		
 		dynamoDb.scan(params, function(err,data){
 			if(err){
+				console.log(err);
 				callback(err,null);
 			}else{
 				console.log(data);

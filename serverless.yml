@@ -132,7 +132,7 @@ functions:
     handler: projectHandler.listManagerProjects
     events:
         - http:
-            path: api/project/{id}
+            path: api/project
             method: get
             cors: true
             authorizer: aws_iam
@@ -140,7 +140,7 @@ functions:
     handler: projectHandler.listDeveloperProjects
     events:
         - http:
-            path: api/project/{id}
+            path: api/project
             method: get
             cors: true
             authorizer: aws_iam             
@@ -164,7 +164,7 @@ functions:
     handler: taskHandler.listAllTasks
     events:
         - http:
-            path: api/task/{id}
+            path: api/task
             method: get
             cors: true
             authorizer: aws_iam

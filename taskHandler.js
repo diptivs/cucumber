@@ -77,7 +77,7 @@ export async function listAllTasks(event, context, callback) {
 		'#userId': 'userId',
 		},
 		ExpressionAttributeValues: {
-        ':userId': event.pathParameters.id,
+        ':userId': event.requestContext.identity.cognitoIdentityId,
 		},
 	};
 	try {		
