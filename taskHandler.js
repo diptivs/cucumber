@@ -1,7 +1,9 @@
 import uuid from "uuid";
 import * as dynamoDbLib from "./libs/dynamodb-lib";
 import { success, failure } from "./libs/response-lib";
+import AWS from "aws-sdk";
 
+//creates new task
 export async function create(event, context, callback) {
 	const data = JSON.parse(event.body);
 	const params = {
@@ -14,8 +16,8 @@ export async function create(event, context, callback) {
 			taskDescription: data.taskDescription,
 			taskStatus: data.taskStatus,
 			taskPomodoraCount: data.taskPomodoraCount,
-			taskPomodoraStartTime: data.taskPomodoraStartTime,
-			taskPomodoraEndTime: data.taskPomodoraEndTime,
+			taskPomodoroStartTime: data.taskPomodoroStartTime,
+			taskPomodoroEndTime: data.taskPomodoroEndTime,
 						
 		}
 	};
@@ -27,7 +29,7 @@ export async function create(event, context, callback) {
 		callback(null, failure({ status: false }));
 	}
 }
-
+//deletes the task specified
 export async function deleteTask(event, context, callback) {
 	const params = {
 		TableName: process.env.taskstableName,
@@ -45,7 +47,7 @@ export async function deleteTask(event, context, callback) {
 	}
 }
 
-
+//Retrieve the task nased on id
 export async function retrieve(event, context, callback) {
 	const params = {
 		TableName: process.env.taskstableName,
@@ -63,6 +65,63 @@ export async function retrieve(event, context, callback) {
 		}
 	} catch (e) {
 	callback(null, failure({ status: false })); }
+}
+
+//List all Tasks of the user
+export async function listAllTasks(event, context, callback) {
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();
+	const params = {
+		TableName: process.env.taskstableName,
+		FilterExpression: '#userId = :userId',
+		ExpressionAttributeNames: {
+		'#userId': 'userId',
+		},
+		ExpressionAttributeValues: {
+        ':userId': event.pathParameters.id,
+		},
+	};
+	try {		
+		dynamoDb.scan(params, function(err,data){
+			if(err){
+				callback(err,null);
+			}else{
+				console.log(data);
+				callback(null, success(data));
+			}
+		});
+	} catch (e) {
+		console.log(e);
+		callback(null, failure({ status: false }));
+}
+}
+
+//Updates task info
+export async function update(event, context, callback) {
+	const data = JSON.parse(event.body);	
+	const params = {
+		TableName: process.env.taskstableName,
+		Key: {
+			taskId: event.pathParameters.id
+		},
+		UpdateExpression: "SET userId = :userId, taskName = :taskName, taskDescription = :taskDescription, taskStatus = :taskStatus, taskPomodoroCount = :taskPomodoroCount, taskPomodoroEndTime = :taskPomodoroEndTime",
+		ExpressionAttributeValues: {
+				":userId": data.userId,
+				":taskName": data.taskName,
+				":taskDescription": data.taskDescription,
+				":taskStatus": data.taskStatus,
+				":taskPomodoroCount": data.taskPomodoroCount,
+				":taskPomodoroEndTime": data.taskPomodoroEndTime
+				
+			},
+	};
+
+	try {
+		const result = await dynamoDbLib.call("update", params);
+		callback(null, success({ status: true }));
+	} catch (e) {
+		console.log(e)
+		callback(null, failure({ status: false }));
+	}
 }
 
 

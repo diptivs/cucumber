@@ -3,7 +3,6 @@ import * as dynamoDbLib from "./libs/dynamodb-lib";
 import { success, failure } from "./libs/response-lib";
 import AWS from "aws-sdk";
 
-
 //Add new user
 export async function create(event, context, callback) {
 	const docClient = new AWS.DynamoDB.DocumentClient();
@@ -16,7 +15,7 @@ export async function create(event, context, callback) {
 			lastName: data.lastName,
 			projectId: docClient.createSet(data.projectId),
 			taskId: docClient.createSet(data.taskId),	
-			role: data.role,
+			userRole: data.role,
 			preferncesId: data.preferenceId						
 		}
 	};
@@ -69,22 +68,22 @@ export async function deleteUser(event, context, callback) {
 
 //Updates user details
 export async function update(event, context, callback) {
-	const data = JSON.parse(event.body);
+	const data = JSON.parse(event.body);	
+	const docClient = new AWS.DynamoDB.DocumentClient();
 	const params = {
 		TableName: process.env.userstableName,
 		Key: {
 			userId: event.pathParameters.id
 		},
-		UpdateExpression: "SET firstName = :firstName, lastName = :lastName",	
-		//ExpressionAttributeNames:{
-         //       "#firstName":"firstName",
-		//		"#lastName":"lastName"				
-         //   },		
+		UpdateExpression: "SET firstName = :firstName, lastName = :lastName, projectId = :projectId, taskId = :taskId, userRole = :userRole",
 		ExpressionAttributeValues: {
-			":firstName": data.firstName,
-			":lastName": data.lastName 
+				":firstName": data.firstName,
+				":lastName": data.lastName,
+				":userRole": data.role,
+				":projectId": docClient.createSet(data.projectId),
+				":taskId": docClient.createSet(data.taskId)
+				
 			},
-		ReturnValues: "ALL_NEW"
 	};
 
 	try {

@@ -1,11 +1,6 @@
 {
-"body": "{\"taskDescription\":\"Initial Setup\",\"taskPomodoraCount\":\"5\"}",
+ "body": "{\"taskName\":\"Implementation2\", \"taskDescription\":\"Testing12\", \"taskStatus\":\"assigned\",\"taskPomodoroCount\":\"4\",\"userId\":\"USER-SUB-104\",\"taskPomodoroEndTime\":\"13-12-2222\"}", 
 "pathParameters": {
-"id": "610d5af0-e472-11e8-99bc-8d67a631d89e"
-},
-"requestContext": {
-"identity": {
-"cognitoIdentityId": "USER-SUB-1234"
-}
+"id": "a684d240-e781-11e8-9588-c95c332264c1"
 }
 }

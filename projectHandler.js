@@ -49,7 +49,65 @@ export async function retrieve(event, context, callback) {
 	callback(null, failure({ status: false })); }
 }
 
-//Deletes project based on the userid specified
+//Lists all projects of the manager
+export async function listManagerProjects(event, context, callback) {
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
+	const params = {
+		TableName: process.env.projectstableName,
+		FilterExpression: '#projectOwner = :userId',
+		ExpressionAttributeNames: {
+		'#projectOwner': 'projectOwner',
+		},
+		ExpressionAttributeValues: {
+        ':userId': event.pathParameters.id		
+		},
+	};
+		
+	try {		
+		dynamoDb.scan(params, function(err,data){
+			if(err){
+				callback(err,null);
+			}else{
+				console.log(data);
+				callback(null, success(data));
+			}
+		});
+	} catch (e) {
+		console.log(e);
+		callback(null, failure({ status: false }));
+}
+}
+//Lists all projects of the developer working on
+export async function listDeveloperProjects(event, context, callback) {
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
+	const params = {
+		TableName: process.env.projectstableName,
+		FilterExpression: 'contains (#projectContributors, :userId)',
+		ExpressionAttributeNames: {
+		'#projectContributors': 'projectContributors',
+		},
+		ExpressionAttributeValues: {
+        ':userId': event.pathParameters.id		
+		},
+	};
+		
+	try {		
+		dynamoDb.scan(params, function(err,data){
+			if(err){
+				callback(err,null);
+			}else{
+				console.log(data);
+				callback(null, success(data));
+			}
+		});
+	} catch (e) {
+		console.log(e);
+		callback(null, failure({ status: false }));
+}
+}
+
+
+//Deletes project based on the projectid specified
 export async function deleteProject(event, context, callback) {
 	const params = {
 		TableName: process.env.projectstableName,
@@ -63,6 +121,37 @@ export async function deleteProject(event, context, callback) {
 		callback(null, success({ status: true }));
 	} catch (e) {
 		console.log(e);
+		callback(null, failure({ status: false }));
+	}
+}
+
+//Updates the project info
+export async function update(event, context, callback) {
+	const data = JSON.parse(event.body);	
+	const docClient = new AWS.DynamoDB.DocumentClient();
+	const params = {
+		TableName: process.env.projectstableName,
+		Key: {
+			projectId: event.pathParameters.id
+		},
+		UpdateExpression: "SET projectName = :projectName, projectDescription = :projectDescription, projectStatus = :projectStatus, projectOwner = :projectOwner, projectContributors = :projectContributors, projectEndDate = :projectEndDate",
+		ExpressionAttributeValues: {
+				":projectName": data.projectName,
+				":projectDescription": data.projectDescription,
+				":projectOwner": data.projectOwner,
+				":projectStatus": data.projectStatus,
+				":projectContributors": docClient.createSet(data.projectContributors),
+				":projectEndDate": data.projectEndDate
+				
+			},		
+			
+	};
+
+	try {
+		const result = await dynamoDbLib.call("update", params);
+		callback(null, success({ status: true }));
+	} catch (e) {
+		console.log(e)
 		callback(null, failure({ status: false }));
 	}
 }

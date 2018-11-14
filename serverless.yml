@@ -10,6 +10,7 @@ custom:
   userstableName: ${self:custom.stage}-users
   projectstableName: ${self:custom.stage}-projects
   taskstableName: ${self:custom.stage}-tasks
+  preferncestableName: ${self:custom.stage}-preferences
   tableThroughputs:
     prod: 5
     default: 1
@@ -29,6 +30,7 @@ provider:
     userstableName: ${self:custom.userstableName}
     projectstableName: ${self:custom.projectstableName}
     taskstableName: ${self:custom.taskstableName}
+    preferncestableName: ${self:custom.preferncestableName}
 
   iamRoleStatements:
     - Effect: Allow
@@ -44,6 +46,7 @@ provider:
         - "Fn::GetAtt": [ UsersTable , Arn ]
         - "Fn::GetAtt": [ ProjectsTable , Arn ]
         - "Fn::GetAtt": [ TasksTable , Arn ]
+        - "Fn::GetAtt": [ PreferencesTable , Arn ]
 functions:
   createUser:
     handler: userHandler.create
@@ -101,6 +104,14 @@ functions:
           method: delete
           cors: true
           authorizer: aws_iam 
+  updateProject:
+    handler: projectHandler.update
+    events:
+      - http:
+          path: api/project/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
   createTask:
     handler: taskHandler.create
     events:
@@ -116,7 +127,23 @@ functions:
             path: api/task/{id}
             method: get
             cors: true
-            authorizer: aws_iam  
+            authorizer: aws_iam 
+  listManagerProjects:
+    handler: projectHandler.listManagerProjects
+    events:
+        - http:
+            path: api/project/{id}
+            method: get
+            cors: true
+            authorizer: aws_iam
+  listDeveloperProjects:
+    handler: projectHandler.listDeveloperProjects
+    events:
+        - http:
+            path: api/project/{id}
+            method: get
+            cors: true
+            authorizer: aws_iam             
   deleteTask:
     handler: taskHandler.deleteTask
     events:
@@ -125,6 +152,62 @@ functions:
           method: delete
           cors: true
           authorizer: aws_iam 
+  updateTask:
+    handler: taskHandler.update
+    events:
+      - http:
+          path: api/task/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
+  listAllTasks:
+    handler: taskHandler.listAllTasks
+    events:
+        - http:
+            path: api/task/{id}
+            method: get
+            cors: true
+            authorizer: aws_iam
+  createPreference:
+    handler: preferenceHandler.create
+    events:
+      - http:
+          path: api/preference
+          method: post
+          cors: true
+          authorizer: aws_iam
+  retrievePreference:
+    handler: preferenceHandler.retrieve
+    events:
+        - http:
+            path: api/preference/{id}
+            method: get
+            cors: true
+            authorizer: aws_iam 
+  retrieveUserPreference:
+    handler: preferenceHandler.retrieveUserPreference
+    events:
+        - http:
+            path: api/preference/{id}
+            method: get
+            cors: true
+            authorizer: aws_iam 
+  deletePreference:
+    handler: preferenceHandler.deletePreference
+    events:
+      - http:
+          path: api/preference/{id}
+          method: delete
+          cors: true
+          authorizer: aws_iam 
+  updatePreference:
+    handler: preferenceHandler.update
+    events:
+      - http:
+          path: api/preference/{id}
+          method: put
+          cors: true
+          authorizer: aws_iam
 resources:
   - ${file(infrastructure/dynamodb.yml)}
   - ${file(infrastructure/cognito-userPool.yml)}
