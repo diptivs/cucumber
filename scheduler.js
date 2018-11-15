@@ -41,6 +41,8 @@ function getNumOfPomodoroSlots(pomodoro_size, short_break_size, long_break_size,
             num_of_slots = Math.floor((range.end - range.start)/(1000*60*pomodoro_size));
             total_slots += num_of_slots;
             slots.push({count: num_of_slots, start: range.start, end: range.end});
+        } else {
+            slots.push({count: 0, start: range.start, end: range.end});
         }
     });
 
@@ -116,19 +118,22 @@ function createSchedule() {
             schedule.push({
                 title: 'Short Break',
                 descr: 'Time to take a short break',
-                start: start_time
-                end:
+                start: start_time,
+                end: end_time
             });
         } else {
-            end_time = date.addMinutes(start_time, end)
+            end_time = date.addMinutes(start_time, long_break_size)
             schedule.push({
                 title: 'Long Break',
                 descr: 'Time to take a long break',
-                start:
-                end:
+                start: start_time
+                end: end_time
             });
         }
+        start_time = end_time;
     });
+
+    return schedule;
 }
 
 
