@@ -56,7 +56,8 @@ function getNumOfPomodoroSlots(pomodoro_size, short_break_size, long_break_size,
  * @return array containing project ids
  */
 function getTasks(project_id, num_tasks) {
-
+    return [{name: "Test task", description: "test description"},
+            {name: "Test task 2", description: "test description2"}]
 }
 
 /**
@@ -102,7 +103,7 @@ function createSchedule() {
     });
 
     var start_time = date.addMinutes(free_time[slot].start, 0);
-    tasks.forEach(function(task){
+    tasks.forEach(function(task, i){
         end_time = date.addMinutes(start_time, pomodoro_size);
         schedule.push({
             title: task.name,
@@ -111,7 +112,7 @@ function createSchedule() {
             end: end_time
         });
         start_time = date.addMinutes(end_time, 0);
-        if (i>4) {
+        if (i<4) {
             end_time = date.addMinutes(start_time, short_break_size);
             schedule.push({
                 title: 'Short Break',
@@ -133,5 +134,4 @@ function createSchedule() {
 
     return schedule;
 }
-
 
