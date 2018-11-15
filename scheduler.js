@@ -36,7 +36,7 @@ function getNumOfPomodoroSlots(pomodoro_size, short_break_size, long_break_size,
         pomodoro_size = pomodoro_size + short_break_size + Math.floor(long_break_size/4),
         slots = [];
 
-    $.each(free_time, function(i, range){
+    free_time.forEach(function(range){
         if (range.type==='free') {
             num_of_slots = Math.floor((range.end - range.start)/(1000*60*pomodoro_size));
             total_slots += num_of_slots;
@@ -96,15 +96,13 @@ function createSchedule() {
         tasks = [],
         slot = 0;
 
-    $.each(projects, function(i, project){
+    projects.forEach(function(project){
         num_of_tasks = Math.round(project.weight/100*avail_pomodoros.total);
         tasks = tasks.concat(getTasks(project._id, num_of_tasks))
-
-
     });
 
     var start_time = date.addMinutes(free_time[slot].start, 0);
-    $.each(tasks, function(i, task){
+    tasks.forEach(function(task){
         end_time = date.addMinutes(start_time, pomodoro_size);
         schedule.push({
             title: task.name,
@@ -126,7 +124,7 @@ function createSchedule() {
             schedule.push({
                 title: 'Long Break',
                 descr: 'Time to take a long break',
-                start: start_time
+                start: start_time,
                 end: end_time
             });
         }
