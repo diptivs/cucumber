@@ -1,19 +1,58 @@
-Resources:
-  TasksTable:
+Resources:  
+  UsersTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: ${self:custom.tableName}
+      TableName: ${self:custom.userstableName}
       AttributeDefinitions:
-        - AttributeName: taskID
-          AttributeType: S
-        - AttributeName: projectID
-          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S               
       KeySchema:
-        - AttributeName: taskID
-          KeyType: HASH
-        - AttributeName: projectID
-          KeyType: RANGE
+        - AttributeName: userId
+          KeyType: HASH        
       # Set the capacity based on the stage
       ProvisionedThroughput:
         ReadCapacityUnits: ${self:custom.tableThroughput}
         WriteCapacityUnits: ${self:custom.tableThroughput}
+  ProjectsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.projectstableName}
+      AttributeDefinitions:
+        - AttributeName: projectId        
+          AttributeType: S     
+      KeySchema:
+        - AttributeName: projectId
+          KeyType: HASH
+      # Set the capacity based on the stage
+      ProvisionedThroughput:
+        ReadCapacityUnits: ${self:custom.tableThroughput}
+        WriteCapacityUnits: ${self:custom.tableThroughput}
+  TasksTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.taskstableName}
+      AttributeDefinitions:
+        - AttributeName: taskId
+          AttributeType: S       
+      KeySchema:
+        - AttributeName: taskId
+          KeyType: HASH        
+      # Set the capacity based on the stage
+      ProvisionedThroughput:
+        ReadCapacityUnits: ${self:custom.tableThroughput}
+        WriteCapacityUnits: ${self:custom.tableThroughput}
+  PreferencesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ${self:custom.preferncestableName}
+      AttributeDefinitions:
+        - AttributeName: preferenceId
+          AttributeType: S               
+      KeySchema:
+        - AttributeName: preferenceId
+          KeyType: HASH        
+      # Set the capacity based on the stage
+      ProvisionedThroughput:
+        ReadCapacityUnits: ${self:custom.tableThroughput}
+        WriteCapacityUnits: ${self:custom.tableThroughput}
+ 

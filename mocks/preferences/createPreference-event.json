@@ -1,0 +1,11 @@
+{
+  "body": "{\"prefPomodoroCount\":\"3\",\"prefShortBreakSize\":4, \"prefLongBreakSize\":6, \"prefWorkSchedule\":\"Morning\"}",
+"requestContext": {
+    "identity": {
+      "cognitoIdentityId": "USER1"
+    }
+  }
+  }
+
+ 
+	
