@@ -52,6 +52,7 @@ export async function retrieve(event, context, callback) {
 //Lists all projects of the manager
 export async function listManagerProjects(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
+	const data = JSON.parse(event.body);
 	const params = {
 		TableName: process.env.projectstableName,
 		FilterExpression: '#projectOwner = :userId',
@@ -59,7 +60,7 @@ export async function listManagerProjects(event, context, callback) {
 		'#projectOwner': 'projectOwner',
 		},
 		ExpressionAttributeValues: {
-        ':userId': event.requestContext.identity.cognitoIdentityId		
+        ':userId': data.userId		
 		},
 	};
 		

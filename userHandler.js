@@ -13,6 +13,7 @@ export async function create(event, context, callback) {
 			userId: event.requestContext.identity.cognitoIdentityId,
 			firstName: data.firstName,
 			lastName: data.lastName,
+			emailId: data.emailId,
 			projectId: docClient.createSet(data.projectId),
 			taskId: docClient.createSet(data.taskId),	
 			userRole: data.role,

@@ -70,6 +70,7 @@ export async function retrieve(event, context, callback) {
 //List all Tasks of the user
 export async function listAllTasks(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();
+	const data = JSON.parse(event.body);	
 	const params = {
 		TableName: process.env.taskstableName,
 		FilterExpression: '#userId = :userId',
@@ -77,7 +78,7 @@ export async function listAllTasks(event, context, callback) {
 		'#userId': 'userId',
 		},
 		ExpressionAttributeValues: {
-        ':userId': event.requestContext.identity.cognitoIdentityId,
+        ':userId': data.userId,
 		},
 	};
 	try {		

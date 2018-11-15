@@ -1,7 +1,3 @@
 {
-"requestContext": {
-    "identity": {
-      "cognitoIdentityId": "USER-SUB-104"
-    }
-  }
+"body": "{\"userId\":\"123\"}"
 }
