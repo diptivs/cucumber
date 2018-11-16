@@ -1,9 +1,23 @@
 import uuid from "uuid";
 import AWS from "AWS-sdk";
 import date from "date-and-time";
+import Amplify from "aws-amplify";
+import config from "./config";
+import API from "aws-amplify";
 
 AWS.config.update({ region: "us-west-1" });
-const dynamoDB = new AWS.DynamoDB.DocumentClient();
+
+Amplify.configure({
+	API: {
+		endpoints: [
+			{
+				name: "API",
+				endpoint: config.apiGateway.URL,
+				region: config.apiGateway.REGION
+			},
+		]
+	}	
+});
 
 export function prepareSchedule(event, context, callback) {
 
@@ -12,12 +26,15 @@ export function prepareSchedule(event, context, callback) {
 /**
  *    Function to get all projects that user is working on
  */
-function getProjects() {
-    //TODO: add code to query db for projects
-    return [{ _id: 1, weight: 20},
+function getProjects(userID) {
+    //TODO: Current API is using Body for GET. Needs fix. Update this call as per next design of API.
+
+    return API.get("API", `/api/project?${userID}`);
+
+   /* return [{ _id: 1, weight: 20},
             { _id: 2, weight: 20},
             { _id: 3, weight: 10},
-            { _id: 4, weight: 50}];
+            { _id: 4, weight: 50}];*/
 }
 
 /**
@@ -71,6 +88,9 @@ function getFreeTime() {
         get meetings for the day.
     */
 
+    //TODO: The current API is expecting Body in GET. Update this once API is Fixed.
+    const userConfig = API.get("API",`/api/preference?${userID}`);
+
     return [{start: new Date('2018-12-1 09:00:00'),
              end: new Date('2018-12-1 12:00:00'),
              type: 'free'},
@@ -87,9 +107,15 @@ function getFreeTime() {
  */
 function createSchedule() {
     // TODO: get pomodoro configuration from database
-    var pomodoro_size = 25,
-        short_break_size=5,
-        long_break_size=20,
+
+    //TODO: The current API is expecting Body in GET. Update this once API is Fixed.
+    const userConfig = API.get("API",`/api/preference?${userID}`);
+
+    const { prefPomodoroCount, prefShortBreakSize, prefLongBreakSize, prefWorkSchedule } = note;
+    
+    var pomodoro_size = prefPomodoroCount,
+        short_break_size=prefShortBreakSize,
+        long_break_size=prefLongBreakSize,
         free_time = getFreeTime(),
         avail_pomodoros = getNumOfPomodoroSlots(pomodoro_size, short_break_size, long_break_size, free_time),
         projects = getProjects();
