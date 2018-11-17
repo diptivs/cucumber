@@ -52,16 +52,8 @@ export async function retrieve(event, context, callback) {
 //Lists all projects of the manager
 export async function listManagerProjects(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
-	console.log("request: " + JSON.stringify(event));
-	//console.log(queryStringParameters);
-	//var userId;
-	//console.log("Received userId: " + event.queryStringParameters.userId);
-	//if (event.queryStringParameters !== null && event.queryStringParameters !== undefined) {
-     //   if (event.queryStringParameters.userId !== undefined && event.queryStringParameters.userId !== null ) {
-     //       console.log("Received userId: " + event.queryStringParameters.userId);
-     //       userId = event.queryStringParameters.userId;
-     //   }
-	//}
+	const inputParams = JSON.parse(event.queryStringParameters);
+	console.log(inputParams.userId);
 	const params = {
 		TableName: process.env.projectstableName,
 		FilterExpression: '#projectOwner = :userId',
@@ -69,31 +61,31 @@ export async function listManagerProjects(event, context, callback) {
 		'#projectOwner': 'projectOwner',
 		},
 		ExpressionAttributeValues: {
-        ':userId': event.managerUserId,		
+        ':userId': inputParams.userId,		
 		},
 	};
-		
 	try {		
 		dynamoDb.scan(params, function(err,data){
 			if(err){
 				//console.log(userId);
-				console.log(err+"******"+JSON.stringify(event));
+				console.log(err);
 				callback(err,null);
 			}else{
-				console.log(data+"----------"+JSON.stringify(event));
+				console.log(data);
 				callback(null, success(data));
 			}
 		});
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
+	}
 }
-}
+
 //Lists all projects of the developer working on
 export async function listDeveloperProjects(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();
-	const data = JSON.parse(event.body);
-console.log(data.userId);	
+	const inputParams = JSON.parse(event.queryStringParameters);	
+	console.log(inputParams.userId);	
 	const params = {
 		TableName: process.env.projectstableName,
 		FilterExpression: 'contains (#projectContributors, :userId)',
@@ -101,7 +93,7 @@ console.log(data.userId);
 		'#projectContributors': 'projectContributors',
 		},
 		ExpressionAttributeValues: {
-        ':userId': data.userId	
+        ':userId': inputParams.userId	
 		},
 	};
 		

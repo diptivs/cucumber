@@ -63,6 +63,14 @@ functions:
             path: api/user/{id}
             method: get
             cors: true
+            authorizer: aws_iam 
+  retrieveOnEmail:
+    handler: userHandler.retrieveOnEmail
+    events:
+        - http:
+            path: api/user
+            method: get
+            cors: true
             authorizer: aws_iam  
   deleteUser:
     handler: userHandler.deleteUser
@@ -132,19 +140,15 @@ functions:
     handler: projectHandler.listManagerProjects
     events:
         - http:
-            path: api/project
+            path: api/project/list
             method: get
             cors: true
-            authorizer: aws_iam
-            integration: lambda
-            request:
-              template:
-                application/json: '{ "managerUserId" : "$input.params(''userId'')" }'
+            authorizer: aws_iam            
   listDeveloperProjects:
     handler: projectHandler.listDeveloperProjects
     events:
         - http:
-            path: api/project
+            path: api/project/list
             method: get
             cors: true
             authorizer: aws_iam             
@@ -168,7 +172,7 @@ functions:
     handler: taskHandler.listAllTasks
     events:
         - http:
-            path: api/task
+            path: api/task/list
             method: get
             cors: true
             authorizer: aws_iam
