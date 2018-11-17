@@ -52,7 +52,16 @@ export async function retrieve(event, context, callback) {
 //Lists all projects of the manager
 export async function listManagerProjects(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
-	const data = JSON.parse(event.body);
+	console.log("request: " + JSON.stringify(event));
+	//console.log(queryStringParameters);
+	//var userId;
+	//console.log("Received userId: " + event.queryStringParameters.userId);
+	//if (event.queryStringParameters !== null && event.queryStringParameters !== undefined) {
+     //   if (event.queryStringParameters.userId !== undefined && event.queryStringParameters.userId !== null ) {
+     //       console.log("Received userId: " + event.queryStringParameters.userId);
+     //       userId = event.queryStringParameters.userId;
+     //   }
+	//}
 	const params = {
 		TableName: process.env.projectstableName,
 		FilterExpression: '#projectOwner = :userId',
@@ -60,16 +69,18 @@ export async function listManagerProjects(event, context, callback) {
 		'#projectOwner': 'projectOwner',
 		},
 		ExpressionAttributeValues: {
-        ':userId': data.userId		
+        ':userId': event.managerUserId,		
 		},
 	};
 		
 	try {		
 		dynamoDb.scan(params, function(err,data){
 			if(err){
+				//console.log(userId);
+				console.log(err+"******"+JSON.stringify(event));
 				callback(err,null);
 			}else{
-				console.log(data);
+				console.log(data+"----------"+JSON.stringify(event));
 				callback(null, success(data));
 			}
 		});
@@ -81,7 +92,8 @@ export async function listManagerProjects(event, context, callback) {
 //Lists all projects of the developer working on
 export async function listDeveloperProjects(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();
-	const data = JSON.parse(event.body);	
+	const data = JSON.parse(event.body);
+console.log(data.userId);	
 	const params = {
 		TableName: process.env.projectstableName,
 		FilterExpression: 'contains (#projectContributors, :userId)',
@@ -99,6 +111,7 @@ export async function listDeveloperProjects(event, context, callback) {
 				console.log(err);
 				callback(err,null);
 			}else{
+				
 				console.log(data);
 				callback(null, success(data));
 			}

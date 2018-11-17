@@ -136,6 +136,10 @@ functions:
             method: get
             cors: true
             authorizer: aws_iam
+            integration: lambda
+            request:
+              template:
+                application/json: '{ "managerUserId" : "$input.params(''userId'')" }'
   listDeveloperProjects:
     handler: projectHandler.listDeveloperProjects
     events:
