@@ -96,3 +96,35 @@ export async function update(event, context, callback) {
 	}
 }
 
+//Fetches user details based on the emailId specified - used to fetch project details
+export async function retrieveOnEmail(event, context, callback) {
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();		
+	const inputParams = JSON.parse(event.queryStringParameters);
+	console.log(inputParams.emailId);
+	const params = {
+		TableName: process.env.projectstableName,
+		FilterExpression: '#emailId = :emailId',
+		ExpressionAttributeNames: {
+		'#emailId': 'emailId',
+		},
+		ExpressionAttributeValues: {
+        ':emailId': inputParams.emailId,		
+		},
+	};
+	try {		
+		dynamoDb.scan(params, function(err,data){
+			if(err){
+				//console.log(userId);
+				console.log(err);
+				callback(err,null);
+			}else{
+				console.log(data);
+				callback(null, success(data));
+			}
+		});
+	} catch (e) {
+		console.log(e);
+		callback(null, failure({ status: false }));
+	}
+}
+
