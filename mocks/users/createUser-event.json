@@ -1,8 +1,8 @@
 {
-  "body": "{\"firstName\":\"User\",\"lastName\":\"userlast2\", \"projectId\":[\"6e\",\"7e\"] ,\"taskId\":[\"8h\",\"9g\"] ,\"role\":\"developer\"}",
+  "body": "{\"firstName\":\"User\",\"lastName\":\"userlast2\", \"projectId\":[\"6e\",\"7e\"] ,\"taskId\":[\"8h\",\"9g\"] ,\"role\":\"developer\",\"emailId\":\"meg@gmail.com\"}",
   "requestContext": {
     "identity": {
-      "cognitoIdentityId": "USER-SUB-102"
+      "cognitoIdentityId": "USER-SUB-105"
     }
   }
 }
