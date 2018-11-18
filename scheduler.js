@@ -16,11 +16,25 @@ Amplify.configure({
 				region: config.apiGateway.REGION
 			},
 		]
-	}	
+	}
 });
 
-export function prepareSchedule(event, context, callback) {
+export function reschedule(event, context, callback) {
+    try {
+        schedule = createSchedule();
+        callback(null, success(schedule));
+    } catch (e) {
+        callback(null, failure({status: false}));
+    }
+}
 
+export function schedule(event, context, callback) {
+    try {
+        schedule = createSchedule();
+        callback(null, success(schedule));
+    } catch (e) {
+        callback(null, failure({status: false}));
+    }
 }
 
 /**
@@ -41,38 +55,38 @@ function getProjects(userID) {
  * Function to get max number of pomodoros for each free range and total number
  * of pomodoros that can be performed.
  *
- * @param pomodoro_size - Size of single pomodoro
- * @param short_break_size - Size of short break
- * @param long_break_size - Size of long break
- * @param free_time - output of getFreeTime() function
+ * @param pomodoroSize - Size of single pomodoro
+ * @param shortBreakSize - Size of short break
+ * @param longBreakSize - Size of long break
+ * @param freeTime - output of getFreeTime() function
  * @return object containing total number of pomodoros as well as number for
  *         each free slot
  */
-function getNumOfPomodoroSlots(pomodoro_size, short_break_size, long_break_size, free_time) {
-    var total_slots = 0,
-        pomodoro_size = pomodoro_size + short_break_size + Math.floor(long_break_size/4),
+function getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, freeTime) {
+    var totalSlots = 0,
+        pomodoroSize = pomodoroSize + shortBreakSize + Math.floor(longBreakSize/4),
         slots = [];
 
-    free_time.forEach(function(range){
+    freeTime.forEach(function(range){
         if (range.type==='free') {
-            num_of_slots = Math.floor((range.end - range.start)/(1000*60*pomodoro_size));
-            total_slots += num_of_slots;
+            num_of_slots = Math.floor((range.end - range.start)/(1000*60*pomodoroSize));
+            totalSlots += num_of_slots;
             slots.push({count: num_of_slots, start: range.start, end: range.end});
         } else {
             slots.push({count: 0, start: range.start, end: range.end});
         }
     });
 
-    return {total: total_slots, slots: slots};
+    return {total: totalSlots, slots: slots};
 }
 
 /**
  * Function that gets specified number of top tasks within the project
- * @param project_id - id of project
- * @param num_tasks - number of tasks to return for the project
+ * @param projectId - id of project
+ * @param numTasks - number of tasks to return for the project
  * @return array containing project ids
  */
-function getTasks(project_id, num_tasks) {
+function getTasks(projectId, numTasks) {
     return [{name: "Test task", description: "test description"},
             {name: "Test task 2", description: "test description2"}]
 }
@@ -106,58 +120,66 @@ function getFreeTime() {
  * function creates schedule and returns it
  */
 function createSchedule() {
-    // TODO: get pomodoro configuration from database
-
-    //TODO: The current API is expecting Body in GET. Update this once API is Fixed.
     const userConfig = API.get("API",`/api/preference?${userID}`);
 
     const { prefPomodoroCount, prefShortBreakSize, prefLongBreakSize, prefWorkSchedule } = note;
-    
-    var pomodoro_size = prefPomodoroCount,
-        short_break_size=prefShortBreakSize,
-        long_break_size=prefLongBreakSize,
-        free_time = getFreeTime(),
-        avail_pomodoros = getNumOfPomodoroSlots(pomodoro_size, short_break_size, long_break_size, free_time),
+
+    var pomodoroSize = prefPomodoroCount,
+        shortBreakSize=prefShortBreakSize,
+        longBreakSize=prefLongBreakSize,
+        freeTime = getFreeTime(),
+        availPomodoros = getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, freeTime),
         projects = getProjects();
         schedule = [],
         tasks = [],
-        slot = 0;
+        taskCount = 0;
 
     projects.forEach(function(project){
-        num_of_tasks = Math.round(project.weight/100*avail_pomodoros.total);
-        tasks = tasks.concat(getTasks(project._id, num_of_tasks))
+        numOfTasks = Math.round(project.weight/100*availPomodoros.total);
+        tasks = tasks.concat(getTasks(project._id, numOfTasks))
     });
 
-    var start_time = date.addMinutes(free_time[slot].start, 0);
-    tasks.forEach(function(task, i){
-        end_time = date.addMinutes(start_time, pomodoro_size);
-        schedule.push({
-            title: task.name,
-            desc: task.description,
-            start: start_time,
-            end: end_time
-        });
-        start_time = date.addMinutes(end_time, 0);
-        if (i<4) {
-            end_time = date.addMinutes(start_time, short_break_size);
-            schedule.push({
-                title: 'Short Break',
-                descr: 'Time to take a short break',
-                start: start_time,
-                end: end_time
-            });
-        } else {
-            end_time = date.addMinutes(start_time, long_break_size)
-            schedule.push({
-                title: 'Long Break',
-                descr: 'Time to take a long break',
-                start: start_time,
-                end: end_time
-            });
+    availPomodoros.slots.forEach(function(timeslot, n) {
+        var start_time = date.addMinutes(timeslot.start, 0),
+            tasksForSlot = tasks.slice(0, timeslot.count);
+        tasks = tasks.slice(timeslot.count);
+
+        if (timeslot.type !== 'free') {
+            schedule.push(timeslot);
+            return;
         }
-        start_time = end_time;
-    });
 
+        tasksForSlot.forEach(function(task){
+            end_time = date.addMinutes(start_time, pomodoroSize);
+            schedule.push({
+                title: task.name,
+                desc: task.description,
+                start: start_time,
+                end: end_time
+            });
+            start_time = date.addMinutes(end_time, 0);
+            if (taskCount<3) {
+                end_time = date.addMinutes(start_time, shortBreakSize);
+                schedule.push({
+                    title: 'Short Break',
+                    descr: 'Time to take a short break',
+                    start: start_time,
+                    end: end_time
+                });
+                taskCount++;
+            } else {
+                end_time = date.addMinutes(start_time, longBreakSize)
+                schedule.push({
+                    title: 'Long Break',
+                    descr: 'Time to take a long break',
+                    start: start_time,
+                    end: end_time
+                });
+                taskCount=0;
+            }
+            start_time = end_time;
+        });
+    });
     return schedule;
 }
 
