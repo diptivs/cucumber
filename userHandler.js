@@ -102,7 +102,7 @@ export async function retrieveOnEmail(event, context, callback) {
 	const inputParams = JSON.parse(event.queryStringParameters);
 	console.log(inputParams.emailId);
 	const params = {
-		TableName: process.env.projectstableName,
+		TableName: process.env.userstableName,
 		FilterExpression: '#emailId = :emailId',
 		ExpressionAttributeNames: {
 		'#emailId': 'emailId',
