@@ -6,4 +6,4 @@ phases:
       - npm install -g serverless
   build:
     commands:
-      - serverless deploy --stage pomafocusProd | tee deploy.out
+      - serverless deploy --stage $DEPLOYMENT_STAGE | tee deploy.out
