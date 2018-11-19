@@ -116,7 +116,7 @@ export async function retrieveOnEmail(event, context, callback) {
 			if(err){
 				//console.log(userId);
 				console.log(err);
-				callback(err,null);
+				callback(null, failure({ status: false }));
 			}else{
 				console.log(data);
 				callback(null, success(data));
