@@ -5,6 +5,7 @@ import AWS from "aws-sdk";
 
 //creates new task
 export async function create(event, context, callback) {
+	const docClient = new AWS.DynamoDB.DocumentClient();	
 	const data = JSON.parse(event.body);
 	const params = {
 		TableName: process.env.taskstableName,
@@ -23,11 +24,30 @@ export async function create(event, context, callback) {
 	};
 	try {
 		await dynamoDbLib.call("put", params);
-		callback(null, success(params.Item));
+		const userparams = {
+			TableName: process.env.userstableName,
+			Key: {
+				userId: event.requestContext.identity.cognitoIdentityId,
+			},
+			UpdateExpression: 'ADD taskId :taskId',
+			ExpressionAttributeValues: {
+			':taskId': docClient.createSet([params.Item.taskId])
+			},
+		ReturnValues: 'UPDATED_NEW'		
+		}
+		try {
+			const result = await dynamoDbLib.call("update", userparams);
+			console.log("entered try" + result);
+			callback(null, success({ status: true }));
+		} catch (e) {
+			console.log(e);
+			console.log("entered catch" + e);
+			callback(null, failure({ status: false, error: "Task update on user failed." }));
+		}
+		callback(null, failure({ status: true }));		
 	} catch (e) {
-		console.log(e);
-		callback(null, failure({ status: false }));
-	}
+	callback(null, failure({ status: false })); }
+	
 }
 //deletes the task specified
 export async function deleteTask(event, context, callback) {

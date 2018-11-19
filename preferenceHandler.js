@@ -20,11 +20,30 @@ export async function create(event, context, callback) {
 	};
 	try {
 		await dynamoDbLib.call("put", params);
-		callback(null, success(params.Item));
+		const userparams = {
+			TableName: process.env.userstableName,
+			Key: {
+				userId: event.requestContext.identity.cognitoIdentityId,
+			},
+			UpdateExpression: 'SET preferenceId = :preferenceId',
+			ExpressionAttributeValues: {
+			':preferenceId': params.Item.preferenceId
+			},
+		ReturnValues: 'UPDATED_NEW'		
+		}
+		try {
+			const result = await dynamoDbLib.call("update", userparams);
+			console.log("entered try" + result);
+			callback(null, success({ status: true }));
+		} catch (e) {
+			console.log(e);
+			console.log("entered catch" + e);
+			callback(null, failure({ status: false, error: "Preference update on user failed." }));
+		}
+		callback(null, failure({ status: true }));		
 	} catch (e) {
-		console.log(e);
-		callback(null, failure({ status: false }));
-	}
+	callback(null, failure({ status: false })); }
+	
 }
 
 //Fetches pref details based on the prefId specified
