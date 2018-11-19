@@ -42,6 +42,7 @@ export function schedule(event, context, callback) {
  */
 function getProjects(userID) {
     //TODO: Current API is using Body for GET. Needs fix. Update this call as per next design of API.
+    // projects should not be complete
 
     return API.get("API", `/api/project?${userID}`);
 
@@ -87,6 +88,9 @@ function getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, free
  * @return array containing project ids
  */
 function getTasks(projectId, numTasks) {
+    // TODO: get tasks from db, tasks should not be in complete state
+    //       or blocked state
+    //       get tasks based on order /priority
     return [{name: "Test task", description: "test description"},
             {name: "Test task 2", description: "test description2"}]
 }
@@ -95,15 +99,12 @@ function getTasks(projectId, numTasks) {
  * function returns slots of time available for pomodoro scheduling
  * @return array containing slot objects
  */
-function getFreeTime() {
-    /* TODO: add logic to query user's data and check what are free slots
-        get user preferences,
-        remove lunch time -> use lunch time as very long break
-        get meetings for the day.
+function getFreeTime(userConfig, startDate, endDate) {
+    /* TODO: add logic to get meetings for the day.
     */
+    if (startDate == null) startDate = new Date();
 
-    //TODO: The current API is expecting Body in GET. Update this once API is Fixed.
-    const userConfig = API.get("API",`/api/preference?${userID}`);
+    if (userConfig.workSchedule!=undefined)
 
     return [{start: new Date('2018-12-1 09:00:00'),
              end: new Date('2018-12-1 12:00:00'),
@@ -140,7 +141,7 @@ function createSchedule() {
     });
 
     availPomodoros.slots.forEach(function(timeslot, n) {
-        var start_time = date.addMinutes(timeslot.start, 0),
+        var start_time = timeslot.start,
             tasksForSlot = tasks.slice(0, timeslot.count);
         tasks = tasks.slice(timeslot.count);
 
@@ -155,7 +156,8 @@ function createSchedule() {
                 title: task.name,
                 desc: task.description,
                 start: start_time,
-                end: end_time
+                end: end_time,
+                taskId: task.id
             });
             start_time = date.addMinutes(end_time, 0);
             if (taskCount<3) {
