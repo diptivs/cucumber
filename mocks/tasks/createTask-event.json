@@ -1,4 +1,8 @@
 {
-  "body": "{\"projectId\":\"Project2\",\"taskName\":\"Implementation\", \"taskDescription\":\"Creat Rest APIs\", \"taskStatus\":\"new\",\"taskPomodoroCount\":\"3\",\"userId\":\"USER-SUB-100\",\"taskPomodoroStartTime\":\"12-03-2018\",\"taskPomodoroEndTime\":\"14-03-2018\"}"
-  
-}
+  "body": "{\"projectId\":\"Project2\",\"taskName\":\"Implementation\", \"taskDescription\":\"Creat Rest APIs\", \"taskStatus\":\"new\",\"taskPomodoroCount\":\"3\",\"userId\":\"USER-SUB-100\",\"taskPomodoroStartTime\":\"12-03-2018\",\"taskPomodoroEndTime\":\"14-03-2018\"}",
+ "requestContext": {
+    "identity": {
+      "cognitoIdentityId": "USER-SUB-111"
+    }
+  }
+  }

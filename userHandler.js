@@ -14,10 +14,10 @@ export async function create(event, context, callback) {
 			firstName: data.firstName,
 			lastName: data.lastName,
 			emailId: data.emailId,
-			projectId: docClient.createSet(data.projectId),
-			taskId: docClient.createSet(data.taskId),	
+			//projectId: data.projectId ? docClient.createSet(data.projectId) : "",
+			//taskId: data.taskId ? docClient.createSet(data.taskId) : "",	
 			userRole: data.role,
-			preferncesId: data.preferenceId						
+			//preferncesId: data.preferenceId	? data.preferenceId	: ""			
 		}
 	};
 	try {
