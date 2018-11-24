@@ -86,7 +86,6 @@ export async function update(event, context, callback) {
 				
 			},
 	};
-
 	try {
 		const result = await dynamoDbLib.call("update", params);
 		callback(null, success({ status: true }));
@@ -97,28 +96,21 @@ export async function update(event, context, callback) {
 }
 
 //Fetches user details based on the emailId specified - used to fetch project details
-export async function retrieveOnEmail(event, context, callback) {
-	const dynamoDb = new AWS.DynamoDB.DocumentClient();		
-	const inputParams = JSON.parse(event.queryStringParameters);
-	console.log(inputParams.emailId);
-	const params = {
+export function retrieveOnEmail(event, context, callback) {
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();
+	let params = {
 		TableName: process.env.userstableName,
-		FilterExpression: '#emailId = :emailId',
-		ExpressionAttributeNames: {
-		'#emailId': 'emailId',
-		},
+		FilterExpression: "emailId = :emailId",
 		ExpressionAttributeValues: {
-        ':emailId': inputParams.emailId,		
+			":emailId" : event.queryStringParameters.emailId
 		},
+		Limit: 100
 	};
 	try {		
 		dynamoDb.scan(params, function(err,data){
 			if(err){
-				//console.log(userId);
-				console.log(err);
-				callback(null, failure({ status: false }));
+				callback(err,null);
 			}else{
-				console.log(data);
 				callback(null, success(data));
 			}
 		});
@@ -127,4 +119,3 @@ export async function retrieveOnEmail(event, context, callback) {
 		callback(null, failure({ status: false }));
 	}
 }
-
