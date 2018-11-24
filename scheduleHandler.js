@@ -1,27 +1,32 @@
 import * as schedulerLib from "./libs/scheduler-lib";
 
-//creates project
-export async function create(event, context, callback) {
-	const docClient = new AWS.DynamoDB.DocumentClient();	
-	const data = JSON.parse(event.body);
-	const params = {
-		TableName: process.env.projectstableName,
-		Item: {
-			projectId: uuid.v1(),
-			projectName: data.projectName,
-			projectDescription: data.projectDescription,
-			projectStatus: data.projectStatus,
-			projectOwner: data.projectOwner,
-			projectContributors: docClient.createSet(data.projectContributors),
-			projectStartDate: data.projectStartDate,
-			projectEndDate: data.projectEndDate									
-		}
-	};
+//Get Schedule for given time frame
+//input: GET with queryparameter: ?startDate=<>,endDate=<>
+export async function getSchedule(event, context, callback) {
 	try {
-		await dynamoDbLib.call("put", params);
-		callback(null, success(params.Item));
+		const result = await schedulerLib.getSchedule(event.queryStringParameters.startDate, event.queryStringParameters.endDate);
+		if (result.Item) {
+			// Return the retrieved item
+			callback(null, success(result.Item));
+		} else {
+			callback(null, failure({ status: false, error: "No tasks available."}));
+		}
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
 	}
 }
+
+//create/update schedule
+//input: POST with Request Body: { taskID:<>, taskType: N (new) / S (snooze) / C (calender)}
+export async function reSchedule(event, context, callback) {
+	const data = JSON.parse(event.body);
+        try {
+                await schedulerLib.getSchedule(data.taskID, data.taskType);
+                callback(null, success(params.Item));
+        } catch (e) {
+                console.log(e);
+                callback(null, failure({ status: false }));
+        }
+}
+
