@@ -217,19 +217,19 @@ functions:
           cors: true
           authorizer: aws_iam
   getSchedule:
-    handler: schedule.schedule
+    handler: scheduleHandler.getSchedule
     events:
       - http:
-          path: api/schedule
+          path: api/getschedule
           method: get
           cors: true
           authorizer: aws_iam
   reschedule:
-    handler: schedule.reschedule
+    handler: scheduleHandler.reSchedule
     events:
       - http:
           path: api/reschedule
-          method: get
+          method: post
           cors: true
           authorizer: aws_iam
 
