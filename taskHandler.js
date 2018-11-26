@@ -16,7 +16,7 @@ export async function create(event, context, callback) {
 			taskName: data.taskName,
 			taskDescription: data.taskDescription,
 			taskStatus: data.taskStatus,
-			taskPomodoraCount: data.taskPomodoraCount,
+			taskPomodoroCount: data.taskPomodoroCount,
 			taskPomodoroStartTime: data.taskPomodoroStartTime,
 			taskPomodoroEndTime: data.taskPomodoroEndTime,
 						
@@ -55,12 +55,17 @@ export async function deleteTask(event, context, callback) {
 		TableName: process.env.taskstableName,
 		Key: {
 			taskId: event.pathParameters.id
-		}
+		},
+		ReturnValues: 'ALL_OLD'
 	};
 
 	try {
 		const result = await dynamoDbLib.call("delete", params);
+		if(result.Attributes) {		
 		callback(null, success({ status: true }));
+		} else {
+			callback(null, failure({ status: false , error: "Unable to delete" }));
+		}
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
@@ -90,8 +95,6 @@ export async function retrieve(event, context, callback) {
 //List all Tasks of the user
 export async function listAllTasks(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();		
-	const inputParams = JSON.parse(event.queryStringParameters);
-	console.log(inputParams.userId);	
 	const params = {
 		TableName: process.env.taskstableName,
 		FilterExpression: '#userId = :userId',
@@ -99,18 +102,17 @@ export async function listAllTasks(event, context, callback) {
 		'#userId': 'userId',
 		},
 		ExpressionAttributeValues: {
-        ':userId': inputParams.userId,
+        ':userId': event.queryStringParameters.userId,
 		},
 	};
-	try {		
-		dynamoDb.scan(params, function(err,data){
-			if(err){
-				callback(err,null);
+	try {	
+		const scanResult = await dynamoDb.scan(params).promise();				
+		if(scanResult){
+			console.log(scanResult);
+			callback(null, success(scanResult));				
 			}else{
-				console.log(data);
-				callback(null, success(data));
-			}
-		});
+				callback(err,failure({ status: false , error: "Task does not exist." }));
+			}		
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));

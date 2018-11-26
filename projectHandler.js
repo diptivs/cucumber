@@ -68,71 +68,60 @@ export async function retrieve(event, context, callback) {
 	callback(null, failure({ status: false })); }
 }
 
+
 //Lists all projects of the manager
-export async function listManagerProjects(event, context, callback) {
-	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
-	const inputParams = JSON.parse(event.queryStringParameters);
-	console.log(inputParams.userId);
+export async function listUserProjects(event, context, callback) {	
 	const params = {
-		TableName: process.env.projectstableName,
-		FilterExpression: '#projectOwner = :userId',
-		ExpressionAttributeNames: {
-		'#projectOwner': 'projectOwner',
-		},
-		ExpressionAttributeValues: {
-        ':userId': inputParams.userId,		
-		},
+		TableName: process.env.userstableName,
+		Key: {
+			userId: event.queryStringParameters.userId
+		}
 	};
-	try {		
-		dynamoDb.scan(params, function(err,data){
-			if(err){
-				//console.log(userId);
-				console.log(err);
-				callback(err,null);
-			}else{
-				console.log(data);
-				callback(null, success(data));
+	try {
+		console.log(params);
+		const result = await dynamoDbLib.call("get", params);
+		console.log(result);
+		if (result.Item) {
+			// Return the retrieved item
+			const dynamoDb = new AWS.DynamoDB.DocumentClient();
+			var projectparams;
+			if(result.Item.userRole == "manager") {
+			projectparams = {
+			TableName: process.env.projectstableName,
+			FilterExpression: ' projectOwner = :userId',
+			ExpressionAttributeValues: {
+			':userId': event.queryStringParameters.userId		
 			}
-		});
-	} catch (e) {
+		};
+		}else if(result.Item.userRole=="developer") {
+			projectparams = {
+			TableName: process.env.projectstableName,
+			FilterExpression: 'contains (projectContributors, :userId)',
+			ExpressionAttributeValues: {
+			':userId': event.queryStringParameters.userId		
+			}
+		};
+		}
+		try {
+			console.log(projectparams);
+			const scanResult = await dynamoDb.scan(projectparams).promise();
+			if(scanResult){
+			console.log(scanResult);
+			callback(null, success(scanResult));
+				//console.log(userId);				
+			}else{
+			console.log(err);
+			callback(err,null);	
+			}
+		} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
+	}}
+	
+	}catch (e) {
+	callback(null, failure({ status: false , error: "User does not exist." })); 
 	}
 }
-
-//Lists all projects of the developer working on
-export async function listDeveloperProjects(event, context, callback) {
-	const dynamoDb = new AWS.DynamoDB.DocumentClient();
-	const inputParams = JSON.parse(event.queryStringParameters);	
-	console.log(inputParams.userId);	
-	const params = {
-		TableName: process.env.projectstableName,
-		FilterExpression: 'contains (#projectContributors, :userId)',
-		ExpressionAttributeNames: {
-		'#projectContributors': 'projectContributors',
-		},
-		ExpressionAttributeValues: {
-        ':userId': inputParams.userId	
-		},
-	};
-		
-	try {		
-		dynamoDb.scan(params, function(err,data){
-			if(err){
-				console.log(err);
-				callback(err,null);
-			}else{
-				
-				console.log(data);
-				callback(null, success(data));
-			}
-		});
-	} catch (e) {
-		console.log(e);
-		callback(null, failure({ status: false }));
-}
-}
-
 
 //Deletes project based on the projectid specified
 export async function deleteProject(event, context, callback) {
@@ -140,12 +129,39 @@ export async function deleteProject(event, context, callback) {
 		TableName: process.env.projectstableName,
 		Key: {
 			projectId: event.pathParameters.id
-		}
+		},
+		ReturnValues: 'ALL_OLD'
 	};
 
 	try {
 		const result = await dynamoDbLib.call("delete", params);
+		if(result.Attributes) {		
 		callback(null, success({ status: true }));
+		
+		const userparams = {
+			TableName: process.env.userstableName,
+			Key: {
+				userId: event.requestContext.identity.cognitoIdentityId,
+			},
+			UpdateExpression: 'DELETE projectId :projectId',
+			ExpressionAttributeValues: {
+			':projectId': docClient.createSet([params.Item.projectId])
+			},
+		ReturnValues: 'UPDATED_NEW'		
+		}
+		
+		try {
+			const result = await dynamoDbLib.call("update", userparams);
+			console.log("entered try" + result);
+			callback(null, success({ status: true }));
+		} catch (e) {
+			console.log(e);
+			console.log("entered catch" + e);
+			callback(null, failure({ status: false, error: "Project update on user failed." }));
+		}		
+		} else {
+			callback(null, failure({ status: false , error: "Unable to delete" }));
+		}
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
