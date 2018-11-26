@@ -19,24 +19,6 @@ Amplify.configure({
 	}
 });
 
-export function reschedule(event, context, callback) {
-    try {
-        schedule = createSchedule();
-        callback(null, success(schedule));
-    } catch (e) {
-        callback(null, failure({status: false}));
-    }
-}
-
-export function schedule(event, context, callback) {
-    try {
-        schedule = createSchedule();
-        callback(null, success(schedule));
-    } catch (e) {
-        callback(null, failure({status: false}));
-    }
-}
-
 /**
  *    Function to get all projects that user is working on
  */

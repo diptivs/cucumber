@@ -22,8 +22,8 @@ export async function getSchedule(event, context, callback) {
 export async function reSchedule(event, context, callback) {
 	const data = JSON.parse(event.body);
         try {
-                await schedulerLib.getSchedule(data.taskID, data.taskType);
-                callback(null, success(params.Item));
+                await schedulerLib.reSchedule(data);
+                callback(null, success({ status: true }));
         } catch (e) {
                 console.log(e);
                 callback(null, failure({ status: false }));
