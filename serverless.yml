@@ -135,23 +135,15 @@ functions:
             path: api/task/{id}
             method: get
             cors: true
-            authorizer: aws_iam 
-  listManagerProjects:
-    handler: projectHandler.listManagerProjects
+            authorizer: aws_iam
+  listUserProjects:
+    handler: projectHandler.listUserProjects
     events:
         - http:
             path: api/project
             method: get
             cors: true
-            authorizer: aws_iam            
-  listDeveloperProjects:
-    handler: projectHandler.listDeveloperProjects
-    events:
-        - http:
-            path: api/project
-            method: get
-            cors: true
-            authorizer: aws_iam             
+            authorizer: aws_iam
   deleteTask:
     handler: taskHandler.deleteTask
     events:
@@ -196,7 +188,7 @@ functions:
     handler: preferenceHandler.retrieveUserPreference
     events:
         - http:
-            path: api/preference/{id}
+            path: api/preference
             method: get
             cors: true
             authorizer: aws_iam 

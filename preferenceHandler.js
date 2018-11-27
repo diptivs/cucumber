@@ -12,10 +12,10 @@ export async function create(event, context, callback) {
 		Item: {
 			preferenceId: uuid.v1(),
 			userId: event.requestContext.identity.cognitoIdentityId,
-			prefPomodoroCount: data.prefPomodoroCount,
-			prefShortBreakSize: data.prefShortBreakSize,
-			prefLongBreakSize: data.prefLongBreakSize,
-			prefWorkSchedule: data.prefWorkDay												
+			pomodoroSize: data.prefPomodoroCount,
+			shortBreakSize: data.prefShortBreakSize,
+			longBreakSize: data.prefLongBreakSize,
+			workSchedule: data.prefWorkDay,												
 		}
 	};
 	try {
@@ -101,12 +101,17 @@ export async function deletePreference(event, context, callback) {
 		TableName: process.env.preferncestableName,
 		Key: {
 			preferenceId: event.pathParameters.id
-		}
+		},
+		ReturnValues: 'ALL_OLD'
 	};
 
 	try {
 		const result = await dynamoDbLib.call("delete", params);
+		if(result.Attributes) {		
 		callback(null, success({ status: true }));
+		} else {
+			callback(null, failure({ status: false , error: "Unable to delete" }));
+		}
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
@@ -122,7 +127,7 @@ export async function update(event, context, callback) {
 		Key: {
 			preferenceId: event.pathParameters.id
 		},
-		UpdateExpression: "SET prefPomodoroCount = :prefPomodoroCount, prefShortBreakSize = :prefShortBreakSize, prefLongBreakSize = :prefLongBreakSize, prefWorkSchedule = :prefWorkSchedule",
+		UpdateExpression: "SET pomodoroSize = :prefPomodoroCount, shortBreakSize = :prefShortBreakSize, longBreakSize = :prefLongBreakSize, workSchedule = :prefWorkSchedule",
 		ExpressionAttributeValues: {
 				":prefPomodoroCount": data.prefPomodoroCount,
 				":prefShortBreakSize": data.prefShortBreakSize,

@@ -41,6 +41,8 @@ export async function retrieve(event, context, callback) {
 		const result = await dynamoDbLib.call("get", params);
 		if (result.Item) {
 		// Return the retrieved item
+		if(result.Item.userRole=="manager"){
+		console.log(result.Item.userRole);}
 		callback(null, success(result.Item));
 		} else {
 		callback(null, failure({ status: false, error: "Item not found."}));
@@ -55,12 +57,17 @@ export async function deleteUser(event, context, callback) {
 		TableName: process.env.userstableName,
 		Key: {
 			userId: event.pathParameters.id
-		}
+		},
+		ReturnValues: 'ALL_OLD'
 	};
 
 	try {
-		const result = await dynamoDbLib.call("delete", params);
+		const result = await dynamoDbLib.call("delete", params);		
+		if(result.Attributes) {		
 		callback(null, success({ status: true }));
+		} else {
+			callback(null, failure({ status: false , error: "Unable to delete" }));
+		}
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
