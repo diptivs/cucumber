@@ -11,6 +11,7 @@ custom:
   projectstableName: ${self:custom.stage}-projects
   taskstableName: ${self:custom.stage}-tasks
   preferncestableName: ${self:custom.stage}-preferences
+  scheduletableName: ${self:custom.stage}-schedule
   tableThroughputs:
     prod: 5
     default: 1
@@ -31,6 +32,7 @@ provider:
     projectstableName: ${self:custom.projectstableName}
     taskstableName: ${self:custom.taskstableName}
     preferncestableName: ${self:custom.preferncestableName}
+    scheduletableName: ${self:custom.scheduletableName}
 
   iamRoleStatements:
     - Effect: Allow
@@ -47,6 +49,7 @@ provider:
         - "Fn::GetAtt": [ ProjectsTable , Arn ]
         - "Fn::GetAtt": [ TasksTable , Arn ]
         - "Fn::GetAtt": [ PreferencesTable , Arn ]
+        - "Fn::GetAtt": [ ScheduleTable , Arn ]
 functions:
   createUser:
     handler: userHandler.create

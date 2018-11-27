@@ -2,8 +2,10 @@ import uuid from "uuid";
 import AWS from "AWS-sdk";
 import date from "date-and-time";
 import Amplify from "aws-amplify";
-import config from "./config";
+import config from "../config";
 import API from "aws-amplify";
+import * as dynamoDbLib from "./dynamodb-lib";
+
 
 AWS.config.update({ region: "us-west-1" });
 
@@ -18,6 +20,141 @@ Amplify.configure({
 		]
 	}
 });
+
+
+/****** Functions for schedule Table DB ******/
+//Add new schedule
+async function createScheduleInDB(userID, scheduleDate, schedule) {
+    const docClient = new AWS.DynamoDB.DocumentClient();
+    const params = {
+        TableName: process.env.scheduletableName,
+        Item: {
+            userId: userID,
+            scheduleDate: scheduleDate,
+            schedule: docClient.createList(schedule)      
+        }
+    };
+    try {
+        await dynamoDbLib.call("put", params);
+        return;
+    } catch (e) {
+        console.log(e);
+        return;
+    }
+}
+
+
+//getSchedule for a user
+async function getUserScheduleFromDB(userID) {
+    const params = {
+        TableName: process.env.scheduletableName,
+        Key: {
+            userId: userID
+        }
+    };
+    try {
+        const result = await dynamoDbLib.call("get", params);
+        if (result.Item) {
+        // Return the retrieved item
+        return result.Item;
+        } else {
+            console.log("Item Not Found");
+            return null;
+        }
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+}
+
+//getSchedule for a date range
+async function getScheduleRangeFromDB(userId, scheduleDateStart, scheduleDateEnd) {
+    let params = {
+        TableName: process.env.scheduletableName,
+        KeyConditionExpression:"userId = :userId and scheduleDate BETWEEN :from AND :to",
+        FilterExpression : 'scheduleDate between :val1 and :val2',
+        ExpressionAttributeValues : {
+            ":userId": userId,
+            ":from" : scheduleDateStart,
+            ":to" : scheduleDateEnd
+        }
+    };
+
+    try {       
+        const result = await dynamoDbLib.call("query", params);
+        return result;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+}
+
+//update schedule
+async function updateScheduleInDB(userID, scheduleDate, schedule) {
+    let params = {
+        TableName: process.env.scheduletableName,
+        Key: {
+            "eventId": eventId
+        },
+        UpdateExpression: "set schedule = :schedule",
+        FilterExpression: "scheduleDate = :scheduleDate",
+        ExpressionAttributeValues : {
+            ":schedule": schedule,
+            ":scheduleDate": scheduleDate
+        },
+        ReturnValues:"UPDATED_NEW"
+    };
+
+    try {       
+        const result = await dynamoDbLib.call("update", params);
+        return result;
+    } catch (e) {
+        console.log(e);
+        return null;
+    }
+}
+
+
+/**********************END of DB functions *****************************/
+
+/**
+*   Function to get schedule 
+*/
+export function getSchedule(userId, startDate, endDate)
+{
+    result = getScheduleRangeFromDB(userId, startDate, endDate);
+    if(result)
+    {
+        console.log(result);
+    } else {
+        return null;
+    }
+}
+
+export function reSchedule(userID,data)
+{
+    console.log("Enter reSchedule function");
+    if(!userID)
+        return null;
+    var schedule = [];
+    schedule.push({
+                title: "test1",
+                desc: "test1.task.description",
+                start: "2018-12-01T09:00:00.000Z",
+                end: "2018-12-01T09:25:00.000Z",
+                taskId: "task1.id"
+            });
+    schedule.push({
+                title: "test2",
+                desc: "test2.task.description",
+                start: "2018-12-01T09:25:00.000Z",
+                end: " 2018-12-01T09:30:00.000Z",
+                taskId: "task2.id"
+            });
+
+    createScheduleInDB(userID, "2018-12-01", schedule);
+}
+
 
 /**
  *    Function to get all projects that user is working on
