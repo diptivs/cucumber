@@ -250,7 +250,7 @@ export async function deleteProject(event, context, callback) {
 		} catch (e) {
 			console.log(e);
 			console.log("entered catch" + e);
-			callback(null, failure({ status: false, error: "Project update on user failed." }));
+			callback(null, failure({ status: false, error: "Failed to update project details in user table." }));
 		}		
 		} else {
 			callback(null, failure({ status: false , error: "Unable to delete" }));
