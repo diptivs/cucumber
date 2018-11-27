@@ -68,9 +68,8 @@ export async function retrieve(event, context, callback) {
 	callback(null, failure({ status: false })); }
 }
 
-
 //Lists all projects of the manager
-export async function listUserProjects(event, context, callback) {	
+export async function listProjectsForUser(event, context, callback) {	
 	const params = {
 		TableName: process.env.userstableName,
 		Key: {
@@ -119,6 +118,100 @@ export async function listUserProjects(event, context, callback) {
 	}}
 	
 	}catch (e) {
+	callback(null, failure({ status: false , error: "User does not exist." })); 
+	}
+}
+
+//Lists all projects of the manager
+export async function listAllProjectsDetailsForUser(event, context, callback) {	
+	const params = {
+		TableName: process.env.userstableName,
+		Key: {
+			userId: event.requestContext.identity.cognitoIdentityId
+		}
+	};
+	try {
+		console.log(params);
+		const userScanResult = await dynamoDbLib.call("get", params);
+		console.log(userScanResult);
+		if (userScanResult.Item) {
+			// Return the retrieved item
+			const dynamoDb = new AWS.DynamoDB.DocumentClient();
+			var projectparams;
+			if(userScanResult.Item.userRole == "manager") {
+				projectparams = {
+				TableName: process.env.projectstableName,
+				FilterExpression: ' projectOwner = :userId',
+				ExpressionAttributeValues: {
+				':userId': event.requestContext.identity.cognitoIdentityId		
+				}
+				};				
+			}else if(userScanResult.Item.userRole=="developer") {
+				projectparams = {
+				TableName: process.env.projectstableName,
+				FilterExpression: 'contains (projectContributors, :userId)',
+				ExpressionAttributeValues: {
+				':userId': event.requestContext.identity.cognitoIdentityId		
+				}
+			};
+		}
+		try {
+			console.log(projectparams);
+			var projectScanResult = await dynamoDb.scan(projectparams).promise();
+			var taskScanResult;
+			console.log(projectScanResult);			
+			if(projectScanResult){
+				if(userScanResult.Item.userRole=="manager") {
+					for(var i=0;i<projectScanResult.Count;i++) {
+						console.log(projectScanResult.Items[i].projectId);
+						const taskParams={
+						TableName: process.env.taskstableName,
+						FilterExpression: '#projectId = :projectId',
+						ExpressionAttributeNames: {
+						'#projectId': 'projectId'
+						},
+						ExpressionAttributeValues: {
+						':projectId' :  projectScanResult.Items[i].projectId
+						},
+					};
+					console.log(taskParams);
+					taskScanResult = await dynamoDb.scan(taskParams).promise();
+					console.log(taskScanResult);
+					projectScanResult.Items[i].tasks=taskScanResult.Items;
+					
+				}
+				callback(null, success(projectScanResult));
+							
+			}else if(userScanResult.Item.userRole=="developer") {
+			for(var i=0;i<projectScanResult.Count;i++) {
+						console.log(projectScanResult.Items[i].projectId);
+						const taskParams={
+						TableName: process.env.taskstableName,
+						FilterExpression: '#projectId = :projectId AND #userId = :userId',
+						ExpressionAttributeNames: {
+						'#userId': 'userId',
+						'#projectId': 'projectId'
+						},
+						ExpressionAttributeValues: {
+						':userId': event.requestContext.identity.cognitoIdentityId,
+						':projectId' :  projectScanResult.Items[i].projectId
+						},
+					};
+					console.log(taskParams);
+					taskScanResult = await dynamoDb.scan(taskParams).promise();
+					console.log(taskScanResult);
+					projectScanResult.Items[i].tasks=taskScanResult.Items;
+					
+				}
+				callback(null, success(projectScanResult));	
+			
+		}
+		}}catch (e) {
+		console.log(e);
+		callback(null, failure({ status: false, error: "Failed to fetch task details" }));
+	}
+	}}
+	catch (e) {
 	callback(null, failure({ status: false , error: "User does not exist." })); 
 	}
 }
