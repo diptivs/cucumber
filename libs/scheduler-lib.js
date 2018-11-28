@@ -33,7 +33,9 @@ async function createScheduleInDB(userID, scheduleDate, schedule) {
             schedule : {'L': schedule}
         }
     };
+    
     return await dynamoDbLib.call("put", params);
+
 }
 
 
@@ -78,7 +80,7 @@ async function getScheduleRangeFromDB(userId, scheduleDateStart, scheduleDateEnd
         return result;
     } catch (e) {
         console.log(e);
-        return null;
+        return;
     }
 }
 
@@ -112,14 +114,23 @@ async function updateScheduleInDB(userID, scheduleDate, schedule) {
 /**
 *   Function to get schedule 
 */
-export function getSchedule(userId, startDate, endDate)
+export async function getSchedule(userId, startDate, endDate)
 {
     console.log(userId + startDate + endDate);
     //return getScheduleRangeFromDB(userId, startDate, endDate);
-    return getScheduleRangeFromDB("USER-SUB-102", startDate, endDate);
+    try {
+        const result = await getScheduleRangeFromDB("USER-SUB-102", startDate, endDate);
+        console.log("getSchedule");
+        console.log(result);
+        return result;
+} catch (e){
+    console.log(e);
+    return;
+}
+   
 }
 
-export function reSchedule(userID,data)
+export async function reSchedule(userID,data)
 {
     console.log("Enter reSchedule function");
 
@@ -141,7 +152,7 @@ export function reSchedule(userID,data)
             });
 
     //return createScheduleInDB(userID, scheduleDay, schedule);
-    return createScheduleInDB("USER-SUB-102", "2018-12-09", schedule);
+    return await createScheduleInDB("USER-SUB-102", "2018-12-11", schedule);
 }
 
 
@@ -351,19 +362,19 @@ function createSchedule(userId, startDateStr=null, endDateStr=null) {
  * then it calls createSchedule that writes new schedule to db.
  *
  */
-function getSchedule(userId, startDateStr, endDateStr) {
+/*function getSchedule(userId, startDateStr, endDateStr) {
     //TODO: Fix api call to schedule
-    const schedule = API.get("API",`/api/schedule?${userId}`);
+    const schedule = "test";//= API.get("API",`/api/schedule?${userId}`);
     if (schedule) {
         return schedule;
     } else {
         return createSchedule(userId, startDateStr, endDateStr);
     }
-}
+}*/
 
 /*
  * function that reschedule
  */
-function reSchedule(userId, data) {
+/*function reSchedule(userId, data) {
     return [];
-}
+}*/

@@ -235,8 +235,6 @@ functions:
           method: post
           cors: true
           authorizer: aws_iam
-
-
 resources:
   - ${file(infrastructure/dynamodb.yml)}
   - ${file(infrastructure/cognito-userPool.yml)}
