@@ -1,6 +1,6 @@
 
 import AWS from "aws-sdk";
-
+import { success, failure } from "./libs/response-lib";
 import * as schedulerLib from "./libs/scheduler-lib";
 
 
@@ -10,8 +10,9 @@ import * as schedulerLib from "./libs/scheduler-lib";
 //input: GET with queryparameter: ?startDate=<>,endDate=<>
 export async function getSchedule(event, context, callback) {
 	try {
+		console.log(event);
 		const result = await schedulerLib.getSchedule(event.requestContext.identity.cognitoIdentityId, event.queryStringParameters.startDate, event.queryStringParameters.endDate);
-		if (result.Item) {
+		if (result) {
 			// Return the retrieved item
 			callback(null, success(result.Item));
 		} else {
@@ -27,10 +28,7 @@ export async function getSchedule(event, context, callback) {
 //input: POST with Request Body: { taskID:<>, taskType: N (new) / S (snooze) / C (calender)}
 export async function reSchedule(event, context, callback) {
         try {
-        	console.log("Enter reSchedule API");
-        	console.log(event.requestContext.identity.cognitoIdentityId);
-        	console.log(event);
-                await schedulerLib.reSchedule("f6f4a049-039c-4cbd-a0d9-bcf2bc356ebb",event.body);
+                await schedulerLib.reSchedule(event.requestContext.identity.cognitoIdentityId,event.body);
                 callback(null, success({ status: true }));
         } catch (e) {
                 console.log(e);

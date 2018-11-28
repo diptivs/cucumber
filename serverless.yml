@@ -219,7 +219,7 @@ functions:
           method: get
           cors: true
           authorizer: aws_iam
-  reschedule:
+  reSchedule:
     handler: scheduleHandler.reSchedule
     events:
       - http:
