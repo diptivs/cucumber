@@ -10,11 +10,12 @@ import * as schedulerLib from "./libs/scheduler-lib";
 //input: GET with queryparameter: ?startDate=<>,endDate=<>
 export async function getSchedule(event, context, callback) {
 	try {
-		console.log(event);
-		const result = await schedulerLib.getSchedule(event.requestContext.identity.cognitoIdentityId, event.queryStringParameters.startDate, event.queryStringParameters.endDate);
+		const result = await schedulerLib.getSchedule(event.requestContext.identity.cognitoIdentityId,
+                                                      event.queryStringParameters.startDate,
+                                                      event.queryStringParameters.endDate);
 		if (result) {
 			// Return the retrieved item
-			callback(null, success(result.Item));
+			callback(null, success(result));
 		} else {
 			callback(null, failure({ status: false, error: "No tasks available."}));
 		}

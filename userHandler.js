@@ -14,10 +14,10 @@ export async function create(event, context, callback) {
 			firstName: data.firstName,
 			lastName: data.lastName,
 			emailId: data.emailId,
-			projectId: docClient.createSet(data.projectId),
-			taskId: docClient.createSet(data.taskId),	
+			//projectId: data.projectId ? docClient.createSet(data.projectId) : "",
+			//taskId: data.taskId ? docClient.createSet(data.taskId) : "",	
 			userRole: data.role,
-			preferncesId: data.preferenceId						
+			//preferncesId: data.preferenceId	? data.preferenceId	: ""			
 		}
 	};
 	try {
@@ -86,7 +86,6 @@ export async function update(event, context, callback) {
 				
 			},
 	};
-
 	try {
 		const result = await dynamoDbLib.call("update", params);
 		callback(null, success({ status: true }));
@@ -96,3 +95,27 @@ export async function update(event, context, callback) {
 	}
 }
 
+//Fetches user details based on the emailId specified - used to fetch project details
+export function retrieveOnEmail(event, context, callback) {
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();
+	let params = {
+		TableName: process.env.userstableName,
+		FilterExpression: "emailId = :emailId",
+		ExpressionAttributeValues: {
+			":emailId" : event.queryStringParameters.emailId
+		},
+		Limit: 100
+	};
+	try {		
+		dynamoDb.scan(params, function(err,data){
+			if(err){
+				callback(err,null);
+			}else{
+				callback(null, success(data));
+			}
+		});
+	} catch (e) {
+		console.log(e);
+		callback(null, failure({ status: false }));
+	}
+}
