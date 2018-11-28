@@ -33,7 +33,7 @@ async function createScheduleInDB(userID, scheduleDate, schedule) {
             schedule : {'L': schedule}
         }
     };
-    
+
     return await dynamoDbLib.call("put", params);
 
 }
@@ -116,50 +116,6 @@ async function updateScheduleInDB(userID, scheduleDate, schedule) {
 
 
 /**********************END of DB functions *****************************/
-
-/**
-*   Function to get schedule 
-*/
-export async function getSchedule(userId, startDate, endDate)
-{
-    console.log(userId + startDate + endDate);
-    //return getScheduleRangeFromDB(userId, startDate, endDate);
-    try {
-        const result = await getScheduleRangeFromDB("USER-SUB-102", startDate, endDate);
-        console.log("getSchedule");
-        console.log(result);
-        return result;
-} catch (e){
-    console.log(e);
-    return;
-}
-   
-}
-
-export async function reSchedule(userID,data)
-{
-    console.log("Enter reSchedule function");
-
-    var schedule = [];
-
-    schedule.push({
-                "title": "test1",
-                "desc": "test1.task.description",
-                "start": "2018-12-01T09:00:00.000Z",
-                "end": "2018-12-01T09:25:00.000Z",
-                "taskId": "task1.id"
-            });
-    schedule.push({
-                "title": "test2",
-                "desc": "test2.task.description",
-                "start": "2018-12-01T09:25:00.000Z",
-                "end": " 2018-12-01T09:30:00.000Z",
-                "taskId": "task2.id"
-            });
-
-    //return createScheduleInDB(userID, scheduleDay, schedule);
-    return await createScheduleInDB("USER-SUB-102", "2018-12-11", schedule);
-}
 
 
 /**
@@ -388,20 +344,49 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
  * function that returns schedule. it first looks in db, if nothing present
  * then it calls createSchedule that writes new schedule to db.
  *
- *
+ */
 export async function getSchedule(userId, startDateStr, endDateStr) {
-    const schedule = await getScheduleRangeFromDB(userId, startDateStr, endDateStr);
-
     var response = { Items: [] };
-    if (schedule && schedule.Items.length) {
-        schedule.Items.forEach(function(day){
-            response.Items.concat(day.schedule)
-        });
+    try {
+        const schedule = await getScheduleRangeFromDB(userId, startDateStr, endDateStr);
 
-    } else {
-        response.Items = createSchedule(userId, startDateStr, endDateStr);
+        if (schedule && schedule.Items.length) {
+            schedule.Items.forEach(function(day){
+                response.Items.concat(day.schedule)
+            });
+
+        } else {
+            response.Items = createSchedule(userId, startDateStr, endDateStr);
+        }
+    } catch (e) {
+        console.log(e);
     }
-}
     return response;
-}*/
+}
+
+export async function reSchedule(userID,data)
+{
+    console.log("Enter reSchedule function");
+
+    var schedule = [];
+
+    schedule.push({
+                "title": "test1",
+                "desc": "test1.task.description",
+                "start": "2018-12-01T09:00:00.000Z",
+                "end": "2018-12-01T09:25:00.000Z",
+                "taskId": "task1.id"
+            });
+    schedule.push({
+                "title": "test2",
+                "desc": "test2.task.description",
+                "start": "2018-12-01T09:25:00.000Z",
+                "end": " 2018-12-01T09:30:00.000Z",
+                "taskId": "task2.id"
+            });
+
+    //return createScheduleInDB(userID, scheduleDay, schedule);
+    return await createScheduleInDB("USER-SUB-102", "2018-12-11", schedule);
+}
+
 
