@@ -1,3 +1,8 @@
 {
-  "body": "{\"projectName\":\"Cloud_Project2\",\"projectDescription\":\"Setup1\", \"projectStatus\":\"New\", \"projectOwner\":\"12456\",\"projectContributors\":[\"3\",\"g5\"],\"projectStartDate\":\"2016-02-15\",\"projectEndDate\":\"2016-02-18\"}"
- }
+  "body": "{\"projectName\":\"Cloud_Project8\",\"projectDescription\":\"Setup1\", \"projectStatus\":\"New\", \"projectOwner\":\"12456\",\"projectContributors\":[\"3\",\"g5\"],\"projectStartDate\":\"2016-02-15\",\"projectEndDate\":\"2016-02-18\"}",
+"requestContext": {
+    "identity": {
+      "cognitoIdentityId": "USER-SUB-111"
+    }
+  }
+  }

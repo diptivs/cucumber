@@ -157,18 +157,13 @@ export function reSchedule(userID,data)
 
 
 /**
- *    Function to get all projects that user is working on
+ * Function to get all projects that user is working on
+ * @param userId - congito generated user sub
+ * @return array of project objects
  */
-function getProjects(userID) {
-    //TODO: Current API is using Body for GET. Needs fix. Update this call as per next design of API.
-    // projects should not be complete
-
-    return API.get("API", `/api/project?${userID}`);
-
-   /* return [{ _id: 1, weight: 20},
-            { _id: 2, weight: 20},
-            { _id: 3, weight: 10},
-            { _id: 4, weight: 50}];*/
+function getProjects(userId) {
+    projects = API.get("API", `/api/project?userId=${userId}`);
+    return projects.Items;
 }
 
 /**
@@ -191,10 +186,9 @@ function getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, free
         if (range.type==='free') {
             num_of_slots = Math.floor((range.end - range.start)/(1000*60*pomodoroSize));
             totalSlots += num_of_slots;
-            slots.push({count: num_of_slots, start: range.start, end: range.end});
-        } else {
-            slots.push({count: 0, start: range.start, end: range.end});
+            range['count'] = num_of_slots;
         }
+        slots.push(range);
     });
 
     return {total: totalSlots, slots: slots};
@@ -207,49 +201,108 @@ function getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, free
  * @return array containing project ids
  */
 function getTasks(projectId, numTasks) {
-    // TODO: get tasks from db, tasks should not be in complete state
-    //       or blocked state
-    //       get tasks based on order /priority
-    return [{name: "Test task", description: "test description"},
-            {name: "Test task 2", description: "test description2"}]
+    tasks = API.get("API", `/api/task?projectId={projectId}&taskStatus=new`);
+    return tasks.Items.slice(0, numTasks);
+}
+
+/**
+ * Function to generate array of dates from date range
+ * @param startDate - start date Date object
+ * @param endDate - end date Date object
+ * @return array containing dates
+ */
+function getDates(startDate, endDate) {
+    var dates = [];
+    var currentDate = startDate;
+    while(currentDate <= endDate) {
+        dates.push( new Date(currentDate));
+        currentDate = date.addDays(currentDate, 1);
+    }
+    return dates;
+}
+
+
+/**
+ * function to get timeslot object for given date.
+ * @param day - Date object
+ * @param start - start time, object containing h,m keys with int values
+ * @param end - end time, object containing h,m keys with int values
+ * @return object containing start and end Date objects
+ */
+function getTimeSlot(day, start, end) {
+    var dSt = new Date(day);
+        dEnd = new Date(day);
+    dSt.setHours(start.h, start.m);
+    dEnd.setHours(end.h, end.m);
+    return {start: dSt, end: dEnd};
 }
 
 /**
  * function returns slots of time available for pomodoro scheduling
  * @return array containing slot objects
  */
-function getFreeTime(userConfig, startDate, endDate) {
-    /* TODO: add logic to get meetings for the day.
-    */
-    if (startDate == null) startDate = new Date();
+function getFreeTime(userConfig, startDateStr, endDateStr) {
+    /* TODO: add logic to get meetings for the day. */
+    var schedule = { start: { h: 9, m: 0 },
+                     lunch: { start: { h: 12, m: 0 },
+                              end: { h: 13, m: 0 } },
+                      end: { h: 18, m: 0 } },
+        timeSlots = [],
+        dates = [],
+        startDate, endDate;
 
-    if (userConfig.workSchedule!=undefined)
+    if (startDateStr == null) startDate = new Date();
+    else startDate = new Date(startDateStr);
+    if (endDateStr == null) endDate = new Date();
+    else endDate = new Date(endDateStr);
 
-    return [{start: new Date('2018-12-1 09:00:00'),
-             end: new Date('2018-12-1 12:00:00'),
-             type: 'free'},
-            {start: new Date('2018-12-1 12:00:00'),
-             end: new Date('2018-12-1 13:00:00'),
-             type: 'lunch'},
-            {start: new Date('2018-12-1 13:00:00'),
-             end: new Date('2018-12-1 18:00:00'),
-             type: 'free'}]
+    if (userConfig.workSchedule!=undefined) schedule = userConfig.workSchedule;
+    dates = getDates(startDate, endDate);
+
+    dates.forEach(function(d){
+        if (schedule.lunch!=undefined) {
+            tslot = getTimeSlot(d, schedule.start, schedule.lunch.start);
+            tslot.type = "free";
+            timeSlots.push(tslot);
+            tslot = getTimeSlot(d, schedule.lunch.start, schedule.lunch.end);
+            tslot.type = "lunch";
+            tslot.title = "Lunch";
+            timeSlots.push(tslot);
+            tslot = getTimeSlot(d, schedule.lunch.end, schedule.end);
+            tslot.type = "free";
+            timeSlots.push(tslot);
+        } else {
+            tslot = getTimeSlot(d, schedule.start, schedule.endDateStr);
+            tslot.type = "free";
+            timeSlots.push(tslot);
+        }
+    });
+
+    return timeSlots;
 }
 
 /**
  * function creates schedule and returns it
  */
-function createSchedule() {
-    const userConfig = API.get("API",`/api/preference?${userID}`);
+function createSchedule(userId, startDateStr=null, endDateStr=null) {
+    var preferences = API.get("API",`/api/preference`);
+    const defaultConfig = { prefPomodoroSize: 25,
+                            prefShortBreakSize: 5,
+                            prefLongBreakSize: 20,
+                            prefWorkSchedule: null };
 
-    const { prefPomodoroCount, prefShortBreakSize, prefLongBreakSize, prefWorkSchedule } = note;
+    if(preferences.Count==1) {
+        userConfig = preferences.Items[0];
+    } else {
+        userConfig = defaultConfig;
+    }
 
-    var pomodoroSize = prefPomodoroCount,
-        shortBreakSize=prefShortBreakSize,
-        longBreakSize=prefLongBreakSize,
-        freeTime = getFreeTime(),
+    var pomodoroSize = userConfig.prefPomodoroSize,
+        shortBreakSize = userConfig.prefShortBreakSize,
+        longBreakSize = userConfig.prefLongBreakSize,
+        freeTime = getFreeTime(userConfig, startDateStr, endDateStr),
         availPomodoros = getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, freeTime),
-        projects = getProjects();
+        projects = getProjects(userId);
         schedule = [],
         tasks = [],
         taskCount = 0;
@@ -304,3 +357,24 @@ function createSchedule() {
     return schedule;
 }
 
+/*
+ * function that returns schedule. it first looks in db, if nothing present
+ * then it calls createSchedule that writes new schedule to db.
+ *
+ */
+function getSchedule(userId, startDateStr, endDateStr) {
+    //TODO: Fix api call to schedule
+    const schedule = API.get("API",`/api/schedule?${userId}`);
+    if (schedule) {
+        return schedule;
+    } else {
+        return createSchedule(userId, startDateStr, endDateStr);
+    }
+}
+
+/*
+ * function that reschedule
+ */
+function reSchedule(userId, data) {
+    return [];
+}

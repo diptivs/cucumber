@@ -22,11 +22,30 @@ export async function create(event, context, callback) {
 	};
 	try {
 		await dynamoDbLib.call("put", params);
-		callback(null, success(params.Item));
+		const userparams = {
+			TableName: process.env.userstableName,
+			Key: {
+				userId: event.requestContext.identity.cognitoIdentityId,
+			},
+			UpdateExpression: 'ADD projectId :projectId',
+			ExpressionAttributeValues: {
+			':projectId': docClient.createSet([params.Item.projectId])
+			},
+		ReturnValues: 'UPDATED_NEW'		
+		}
+		try {
+			const result = await dynamoDbLib.call("update", userparams);
+			console.log("entered try" + result);
+			callback(null, success({ status: true }));
+		} catch (e) {
+			console.log(e);
+			console.log("entered catch" + e);
+			callback(null, failure({ status: false, error: "Project update on user failed." }));
+		}
+		callback(null, failure({ status: true }));		
 	} catch (e) {
-		console.log(e);
-		callback(null, failure({ status: false }));
-	}
+	callback(null, failure({ status: false })); }
+	
 }
 
 //Fetches project details based on the projectId specified
@@ -52,7 +71,8 @@ export async function retrieve(event, context, callback) {
 //Lists all projects of the manager
 export async function listManagerProjects(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
-	const data = JSON.parse(event.body);
+	const inputParams = JSON.parse(event.queryStringParameters);
+	console.log(inputParams.userId);
 	const params = {
 		TableName: process.env.projectstableName,
 		FilterExpression: '#projectOwner = :userId',
@@ -60,13 +80,14 @@ export async function listManagerProjects(event, context, callback) {
 		'#projectOwner': 'projectOwner',
 		},
 		ExpressionAttributeValues: {
-        ':userId': data.userId		
+        ':userId': inputParams.userId,		
 		},
 	};
-		
 	try {		
 		dynamoDb.scan(params, function(err,data){
 			if(err){
+				//console.log(userId);
+				console.log(err);
 				callback(err,null);
 			}else{
 				console.log(data);
@@ -76,12 +97,14 @@ export async function listManagerProjects(event, context, callback) {
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
+	}
 }
-}
+
 //Lists all projects of the developer working on
 export async function listDeveloperProjects(event, context, callback) {
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();
-	const data = JSON.parse(event.body);	
+	const inputParams = JSON.parse(event.queryStringParameters);	
+	console.log(inputParams.userId);	
 	const params = {
 		TableName: process.env.projectstableName,
 		FilterExpression: 'contains (#projectContributors, :userId)',
@@ -89,7 +112,7 @@ export async function listDeveloperProjects(event, context, callback) {
 		'#projectContributors': 'projectContributors',
 		},
 		ExpressionAttributeValues: {
-        ':userId': data.userId	
+        ':userId': inputParams.userId	
 		},
 	};
 		
@@ -99,6 +122,7 @@ export async function listDeveloperProjects(event, context, callback) {
 				console.log(err);
 				callback(err,null);
 			}else{
+				
 				console.log(data);
 				callback(null, success(data));
 			}
