@@ -25,22 +25,15 @@ Amplify.configure({
 /****** Functions for schedule Table DB ******/
 //Add new schedule
 async function createScheduleInDB(userID, scheduleDate, schedule) {
-    const docClient = new AWS.DynamoDB.DocumentClient();
     const params = {
         TableName: process.env.scheduletableName,
         Item: {
             userId: userID,
             scheduleDate: scheduleDate,
-            schedule: docClient.createList(schedule)      
+            schedule : {'L': schedule}
         }
     };
-    try {
-        await dynamoDbLib.call("put", params);
-        return;
-    } catch (e) {
-        console.log(e);
-        return;
-    }
+    return await dynamoDbLib.call("put", params);
 }
 
 
@@ -72,16 +65,16 @@ async function getScheduleRangeFromDB(userId, scheduleDateStart, scheduleDateEnd
     let params = {
         TableName: process.env.scheduletableName,
         KeyConditionExpression:"userId = :userId and scheduleDate BETWEEN :from AND :to",
-        FilterExpression : 'scheduleDate between :val1 and :val2',
         ExpressionAttributeValues : {
             ":userId": userId,
             ":from" : scheduleDateStart,
             ":to" : scheduleDateEnd
         }
     };
-
+    console.log(params);
     try {       
         const result = await dynamoDbLib.call("query", params);
+        console.log(result);
         return result;
     } catch (e) {
         console.log(e);
@@ -106,8 +99,7 @@ async function updateScheduleInDB(userID, scheduleDate, schedule) {
     };
 
     try {       
-        const result = await dynamoDbLib.call("update", params);
-        return result;
+        return await dynamoDbLib.call("update", params);
     } catch (e) {
         console.log(e);
         return null;
@@ -122,37 +114,34 @@ async function updateScheduleInDB(userID, scheduleDate, schedule) {
 */
 export function getSchedule(userId, startDate, endDate)
 {
-    result = getScheduleRangeFromDB(userId, startDate, endDate);
-    if(result)
-    {
-        console.log(result);
-    } else {
-        return null;
-    }
+    console.log(userId + startDate + endDate);
+    //return getScheduleRangeFromDB(userId, startDate, endDate);
+    return getScheduleRangeFromDB("USER-SUB-102", startDate, endDate);
 }
 
 export function reSchedule(userID,data)
 {
     console.log("Enter reSchedule function");
-    if(!userID)
-        return null;
+
     var schedule = [];
+
     schedule.push({
-                title: "test1",
-                desc: "test1.task.description",
-                start: "2018-12-01T09:00:00.000Z",
-                end: "2018-12-01T09:25:00.000Z",
-                taskId: "task1.id"
+                "title": "test1",
+                "desc": "test1.task.description",
+                "start": "2018-12-01T09:00:00.000Z",
+                "end": "2018-12-01T09:25:00.000Z",
+                "taskId": "task1.id"
             });
     schedule.push({
-                title: "test2",
-                desc: "test2.task.description",
-                start: "2018-12-01T09:25:00.000Z",
-                end: " 2018-12-01T09:30:00.000Z",
-                taskId: "task2.id"
+                "title": "test2",
+                "desc": "test2.task.description",
+                "start": "2018-12-01T09:25:00.000Z",
+                "end": " 2018-12-01T09:30:00.000Z",
+                "taskId": "task2.id"
             });
 
-    createScheduleInDB(userID, "2018-12-01", schedule);
+    //return createScheduleInDB(userID, scheduleDay, schedule);
+    return createScheduleInDB("USER-SUB-102", "2018-12-09", schedule);
 }
 
 

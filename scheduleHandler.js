@@ -1,6 +1,6 @@
 
 import AWS from "aws-sdk";
-
+import { success, failure } from "./libs/response-lib";
 import * as schedulerLib from "./libs/scheduler-lib";
 
 
@@ -29,10 +29,7 @@ export async function getSchedule(event, context, callback) {
 //input: POST with Request Body: { taskID:<>, taskType: N (new) / S (snooze) / C (calender)}
 export async function reSchedule(event, context, callback) {
         try {
-        	console.log("Enter reSchedule API");
-        	console.log(event.requestContext.identity.cognitoIdentityId);
-        	console.log(event);
-                await schedulerLib.reSchedule(event.requestContext.identity.cognitoIdentityId, event.body);
+                await schedulerLib.reSchedule(event.requestContext.identity.cognitoIdentityId,event.body);
                 callback(null, success({ status: true }));
         } catch (e) {
                 console.log(e);

@@ -1,0 +1,8 @@
+{
+  "body": "{\"taskID\":\"taskID1\",\"TaskType\":\"N\"}",
+  "requestContext": {
+    "identity": {
+      "cognitoIdentityId": "USER-SUB-102"
+    }
+  }
+}
