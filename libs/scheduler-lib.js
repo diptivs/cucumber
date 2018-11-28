@@ -74,7 +74,7 @@ async function getScheduleRangeFromDB(userId, scheduleDateStart, scheduleDateEnd
         }
     };
     console.log(params);
-    try {       
+    try {
         const result = await dynamoDbLib.call("query", params);
         console.log(result);
         return result;
@@ -100,7 +100,7 @@ async function updateScheduleInDB(userID, scheduleDate, schedule) {
         ReturnValues:"UPDATED_NEW"
     };
 
-    try {       
+    try {
         return await dynamoDbLib.call("update", params);
     } catch (e) {
         console.log(e);
@@ -362,19 +362,19 @@ function createSchedule(userId, startDateStr=null, endDateStr=null) {
  * then it calls createSchedule that writes new schedule to db.
  *
  */
-/*function getSchedule(userId, startDateStr, endDateStr) {
-    //TODO: Fix api call to schedule
-    const schedule = "test";//= API.get("API",`/api/schedule?${userId}`);
-    if (schedule) {
-        return schedule;
+/*
+export function getSchedule(userId, startDateStr, endDateStr) {
+    const schedule = getScheduleRangeFromDB(userId, startDateStr, endDateStr);
+    var response = { Items: [] };
+    if (schedule && schedule.Items.length) {
+        schedule.Items.forEach(function(day){
+            response.Items.concat(day.schedule)
+        });
+
     } else {
-        return createSchedule(userId, startDateStr, endDateStr);
+        response.Items = createSchedule(userId, startDateStr, endDateStr);
     }
+}
+    return response;
 }*/
 
-/*
- * function that reschedule
- */
-/*function reSchedule(userId, data) {
-    return [];
-}*/
