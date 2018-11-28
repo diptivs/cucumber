@@ -5,17 +5,17 @@ import AWS from "aws-sdk";
 
 //creates preference
 export async function create(event, context, callback) {
-	const docClient = new AWS.DynamoDB.DocumentClient();	
+	const docClient = new AWS.DynamoDB.DocumentClient();
 	const data = JSON.parse(event.body);
 	const params = {
 		TableName: process.env.preferncestableName,
 		Item: {
 			preferenceId: uuid.v1(),
 			userId: event.requestContext.identity.cognitoIdentityId,
-			prefPomodoroCount: data.prefPomodoroCount,
+			prefPomodoroSize: data.prefPomodoroSize,
 			prefShortBreakSize: data.prefShortBreakSize,
 			prefLongBreakSize: data.prefLongBreakSize,
-			prefWorkSchedule: data.prefWorkDay												
+			prefWorkSchedule: data.prefWorkDay
 		}
 	};
 	try {
@@ -29,7 +29,7 @@ export async function create(event, context, callback) {
 			ExpressionAttributeValues: {
 			':preferenceId': params.Item.preferenceId
 			},
-		ReturnValues: 'UPDATED_NEW'		
+		ReturnValues: 'UPDATED_NEW'
 		}
 		try {
 			const result = await dynamoDbLib.call("update", userparams);
@@ -40,10 +40,10 @@ export async function create(event, context, callback) {
 			console.log("entered catch" + e);
 			callback(null, failure({ status: false, error: "Preference update on user failed." }));
 		}
-		callback(null, failure({ status: true }));		
+		callback(null, failure({ status: true }));
 	} catch (e) {
 	callback(null, failure({ status: false })); }
-	
+
 }
 
 //Fetches pref details based on the prefId specified
@@ -79,7 +79,7 @@ export async function retrieveUserPreference(event, context, callback) {
         ':userId': event.requestContext.identity.cognitoIdentityId,
 		},
 	};
-	try {		
+	try {
 		dynamoDb.scan(params, function(err,data){
 			if(err){
 				callback(err,null);
@@ -96,7 +96,7 @@ export async function retrieveUserPreference(event, context, callback) {
 
 //Deletes preference based on the id specified
 export async function deletePreference(event, context, callback) {
-	
+
 	const params = {
 		TableName: process.env.preferncestableName,
 		Key: {
@@ -115,7 +115,7 @@ export async function deletePreference(event, context, callback) {
 
 //Updates the preferences of the user
 export async function update(event, context, callback) {
-	const data = JSON.parse(event.body);	
+	const data = JSON.parse(event.body);
 	const docClient = new AWS.DynamoDB.DocumentClient();
 	const params = {
 		TableName: process.env.preferncestableName,
@@ -127,9 +127,9 @@ export async function update(event, context, callback) {
 				":prefPomodoroCount": data.prefPomodoroCount,
 				":prefShortBreakSize": data.prefShortBreakSize,
 				":prefLongBreakSize": data.prefLongBreakSize,
-				":prefWorkSchedule": data.prefWorkSchedule			
-			},		
-			
+				":prefWorkSchedule": data.prefWorkSchedule
+			},
+
 	};
 
 	try {
