@@ -72,7 +72,7 @@ async function getScheduleRangeFromDB(userId, scheduleDateStart, scheduleDateEnd
         }
     };
     console.log(params);
-    try {       
+    try {
         const result = await dynamoDbLib.call("query", params);
         console.log(result);
         return result;
@@ -98,7 +98,7 @@ async function updateScheduleInDB(userID, scheduleDate, schedule) {
         ReturnValues:"UPDATED_NEW"
     };
 
-    try {       
+    try {
         return await dynamoDbLib.call("update", params);
     } catch (e) {
         console.log(e);
@@ -108,42 +108,6 @@ async function updateScheduleInDB(userID, scheduleDate, schedule) {
 
 
 /**********************END of DB functions *****************************/
-
-/**
-*   Function to get schedule 
-*/
-export function getSchedule(userId, startDate, endDate)
-{
-    console.log(userId + startDate + endDate);
-    //return getScheduleRangeFromDB(userId, startDate, endDate);
-    return getScheduleRangeFromDB("USER-SUB-102", startDate, endDate);
-}
-
-export function reSchedule(userID,data)
-{
-    console.log("Enter reSchedule function");
-
-    var schedule = [];
-
-    schedule.push({
-                "title": "test1",
-                "desc": "test1.task.description",
-                "start": "2018-12-01T09:00:00.000Z",
-                "end": "2018-12-01T09:25:00.000Z",
-                "taskId": "task1.id"
-            });
-    schedule.push({
-                "title": "test2",
-                "desc": "test2.task.description",
-                "start": "2018-12-01T09:25:00.000Z",
-                "end": " 2018-12-01T09:30:00.000Z",
-                "taskId": "task2.id"
-            });
-
-    //return createScheduleInDB(userID, scheduleDay, schedule);
-    return createScheduleInDB("USER-SUB-102", "2018-12-09", schedule);
-}
-
 
 /**
  * Function to get all projects that user is working on
@@ -351,19 +315,46 @@ function createSchedule(userId, startDateStr=null, endDateStr=null) {
  * then it calls createSchedule that writes new schedule to db.
  *
  */
-function getSchedule(userId, startDateStr, endDateStr) {
-    //TODO: Fix api call to schedule
-    const schedule = API.get("API",`/api/schedule?${userId}`);
-    if (schedule) {
-        return schedule;
+export function getSchedule(userId, startDateStr, endDateStr) {
+    const schedule = getScheduleRangeFromDB(userId, startDateStr, endDateStr);
+    var response = { Items: [] };
+    if (schedule && schedule.Items.length) {
+        schedule.Items.forEach(function(day){
+            response.Items.concat(day.schedule)
+        });
     } else {
-        return createSchedule(userId, startDateStr, endDateStr);
+        response.Items = createSchedule(userId, startDateStr, endDateStr);
     }
+    return response;
 }
 
 /*
  * function that reschedule
  */
-function reSchedule(userId, data) {
-    return [];
+
+export function reSchedule(userID, data)
+{
+    console.log("Enter reSchedule function");
+
+    var schedule = [];
+
+    schedule.push({
+                "title": "test1",
+                "desc": "test1.task.description",
+                "start": "2018-12-01T09:00:00.000Z",
+                "end": "2018-12-01T09:25:00.000Z",
+                "taskId": "task1.id"
+            });
+    schedule.push({
+                "title": "test2",
+                "desc": "test2.task.description",
+                "start": "2018-12-01T09:25:00.000Z",
+                "end": " 2018-12-01T09:30:00.000Z",
+                "taskId": "task2.id"
+            });
+
+    //return createScheduleInDB(userID, scheduleDay, schedule);
+    return createScheduleInDB("USER-SUB-102", "2018-12-09", schedule);
 }
+
+
