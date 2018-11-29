@@ -6,11 +6,12 @@ plugins:
   - serverless-offline
 
 custom:
-  stage: ${opt:stage, self:provider.stage}  
+  stage: ${opt:stage, self:provider.stage}
   userstableName: ${self:custom.stage}-users
   projectstableName: ${self:custom.stage}-projects
   taskstableName: ${self:custom.stage}-tasks
   preferncestableName: ${self:custom.stage}-preferences
+  scheduletableName: ${self:custom.stage}-schedule
   tableThroughputs:
     prod: 5
     default: 1
@@ -31,6 +32,7 @@ provider:
     projectstableName: ${self:custom.projectstableName}
     taskstableName: ${self:custom.taskstableName}
     preferncestableName: ${self:custom.preferncestableName}
+    scheduletableName: ${self:custom.scheduletableName}
 
   iamRoleStatements:
     - Effect: Allow
@@ -42,11 +44,12 @@ provider:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
-      Resource: 
+      Resource:
         - "Fn::GetAtt": [ UsersTable , Arn ]
         - "Fn::GetAtt": [ ProjectsTable , Arn ]
         - "Fn::GetAtt": [ TasksTable , Arn ]
         - "Fn::GetAtt": [ PreferencesTable , Arn ]
+        - "Fn::GetAtt": [ ScheduleTable , Arn ]
 functions:
   createUser:
     handler: userHandler.create
@@ -63,7 +66,7 @@ functions:
             path: api/user/{id}
             method: get
             cors: true
-            authorizer: aws_iam 
+            authorizer: aws_iam
   retrieveOnEmail:
     handler: userHandler.retrieveOnEmail
     events:
@@ -71,7 +74,7 @@ functions:
             path: api/user
             method: get
             cors: true
-            authorizer: aws_iam  
+            authorizer: aws_iam
   deleteUser:
     handler: userHandler.deleteUser
     events:
@@ -103,7 +106,7 @@ functions:
             path: api/project/{id}
             method: get
             cors: true
-            authorizer: aws_iam  
+            authorizer: aws_iam
   deleteProject:
     handler: projectHandler.deleteProject
     events:
@@ -111,7 +114,7 @@ functions:
           path: api/project/{id}
           method: delete
           cors: true
-          authorizer: aws_iam 
+          authorizer: aws_iam
   updateProject:
     handler: projectHandler.update
     events:
@@ -159,7 +162,7 @@ functions:
           path: api/task/{id}
           method: delete
           cors: true
-          authorizer: aws_iam 
+          authorizer: aws_iam
   updateTask:
     handler: taskHandler.update
     events:
@@ -191,7 +194,7 @@ functions:
             path: api/preference/{id}
             method: get
             cors: true
-            authorizer: aws_iam 
+            authorizer: aws_iam
   retrieveUserPreference:
     handler: preferenceHandler.retrieveUserPreference
     events:
@@ -199,7 +202,7 @@ functions:
             path: api/preference
             method: get
             cors: true
-            authorizer: aws_iam 
+            authorizer: aws_iam
   deletePreference:
     handler: preferenceHandler.deletePreference
     events:
@@ -207,13 +210,29 @@ functions:
           path: api/preference/{id}
           method: delete
           cors: true
-          authorizer: aws_iam 
+          authorizer: aws_iam
   updatePreference:
     handler: preferenceHandler.update
     events:
       - http:
           path: api/preference/{id}
           method: put
+          cors: true
+          authorizer: aws_iam
+  getSchedule:
+    handler: scheduleHandler.getSchedule
+    events:
+      - http:
+          path: api/getschedule
+          method: get
+          cors: true
+          authorizer: aws_iam
+  reSchedule:
+    handler: scheduleHandler.reSchedule
+    events:
+      - http:
+          path: api/reschedule
+          method: post
           cors: true
           authorizer: aws_iam
 resources:
