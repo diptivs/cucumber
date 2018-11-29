@@ -1,8 +1,8 @@
 {
-  "body": "{\"firstName\":\"User\",\"lastName\":\"userlast2\", \"role\":\"developer\",\"emailId\":\"meg@gmail.com\"}",
+  "body": "{\"firstName\":\"User\",\"lastName\":\"userlast2\", \"role\":\"developer\",\"emailId\":\"meg2@gmail.com\"}",
   "requestContext": {
     "identity": {
-      "cognitoIdentityId": "USER-SUB-111"
+      "cognitoIdentityId": "DemoUserDev"
     }
   }
 }
