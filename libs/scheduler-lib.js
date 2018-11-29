@@ -277,10 +277,10 @@ async function pushScheduleToDb(userId, schedule) {
 async function createSchedule(userId, startDateStr=null, endDateStr=null) {
     var preferences = await API.get("API",`/api/preference`),
         userConfig = null;
-    const defaultConfig = { prefPomodoroSize: 25,
-                            prefShortBreakSize: 5,
-                            prefLongBreakSize: 20,
-                            prefWorkSchedule: null };
+    const defaultConfig = { pomodoroSize: 25,
+                            shortBreakSize: 5,
+                            longBreakSize: 20,
+                            workSchedule: null };
 
     if(preferences.Count==1) {
         userConfig = preferences.Items[0];
@@ -288,9 +288,9 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         userConfig = defaultConfig;
     }
 
-    var pomodoroSize = userConfig.prefPomodoroSize,
-        shortBreakSize = userConfig.prefShortBreakSize,
-        longBreakSize = userConfig.prefLongBreakSize,
+    var pomodoroSize = userConfig.pomodoroSize,
+        shortBreakSize = userConfig.shortBreakSize,
+        longBreakSize = userConfig.longBreakSize,
         freeTime = getFreeTime(userConfig, startDateStr, endDateStr),
         availPomodoros = getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, freeTime),
         projects = await getProjects(userId),
