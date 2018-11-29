@@ -261,14 +261,14 @@ async function pushScheduleToDb(userId, schedule) {
             key = date.format(day, 'YYYY-MM-DD');
 
         if (!entries.hasOwnProperty(key)) {
-            entries[key] = []
+            entries[key] = [];
         }
-        entries[key].push(task)
+        entries[key].push(task);
     });
 
     Object.keys(entries).forEach(function(key){
-        await createScheduleInDB(userId, date.format(day, 'YYYY-MM-DD', entries))
-    })
+        createScheduleInDB(userId, key, entries[key]);
+    });
 }
 
 /**
