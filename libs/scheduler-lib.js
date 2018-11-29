@@ -394,6 +394,5 @@ export async function reSchedule(userID,data)
                 "taskId": "task2.id"
             });
 
-    //return createScheduleInDB(userID, scheduleDay, schedule);
-    return await createScheduleInDB("USER-SUB-102", "2018-12-11", schedule);
+    return createScheduleInDB(userID, scheduleDay, schedule);
 }
