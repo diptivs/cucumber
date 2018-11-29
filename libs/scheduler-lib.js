@@ -267,7 +267,7 @@ async function pushScheduleToDb(userId, schedule) {
     });
 
     Object.keys(entries).forEach(function(key){
-        await createScheduleInDB(userId, key, entries);
+        createScheduleInDB(userId, key, entries[key]);
     });
 }
 
