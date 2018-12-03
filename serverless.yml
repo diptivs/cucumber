@@ -50,6 +50,11 @@ provider:
         - "Fn::GetAtt": [ TasksTable , Arn ]
         - "Fn::GetAtt": [ PreferencesTable , Arn ]
         - "Fn::GetAtt": [ ScheduleTable , Arn ]
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+      Resource:
+        - "*"
 functions:
   createUser:
     handler: userHandler.create
@@ -223,7 +228,7 @@ functions:
     handler: scheduleHandler.getSchedule
     events:
       - http:
-          path: api/getschedule
+          path: api/schedule
           method: get
           cors: true
           authorizer: aws_iam
@@ -231,7 +236,7 @@ functions:
     handler: scheduleHandler.reSchedule
     events:
       - http:
-          path: api/reschedule
+          path: api/schedule
           method: post
           cors: true
           authorizer: aws_iam

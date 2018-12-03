@@ -1,22 +1,21 @@
 import uuid from "uuid";
 import AWS from "aws-sdk";
 import date from "date-and-time";
-import Amplify from "aws-amplify";
 import config from "../config";
-import API from "@aws-amplify/api";
 import * as dynamoDbLib from "./dynamodb-lib";
 
+AWS.config.region = config.apiGateway.REGION;
 
-Amplify.configure({
-	API: {
-		endpoints: [
-			{
-				name: "API",
-				endpoint: config.apiGateway.URL,
-				region: config.apiGateway.REGION
-			},
-		]
-	}
+const lambdaName = "pomafocus-api-" + process.env.stage;
+
+const getLambda = (lambda, params) => new Promise((resolve, reject) => {
+  lambda.invoke(params, (error, data) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(data);
+    }
+  });
 });
 
 function taskCompare(a, b){
@@ -143,11 +142,37 @@ async function updateScheduleInDB(userID, scheduleDate, schedule) {
  * @return array of project objects
  */
 async function getProjects(userId) {
-    var projects = await API.get("API", `/api/project?userId=${userId}`);
+    /*var projects = await API.get("API", `/api/project?userId=${userId}`);
     if (projects)
         return projects.Items;
     else
-        return [];
+        return [];*/
+    try{
+        const lambda = new AWS.Lambda();
+
+        const params = {
+            FunctionName: lambdaName + "-listProjectsForUser",
+            Payload: JSON.stringify({
+                    "queryStringParameters": {
+                        "userId":userId
+                    }
+            }),
+        };
+
+        console.log("calling getProjectsLambda");
+        console.log(params);
+        const projects = await getLambda(lambda, params);
+        console.log('getLambda returned');
+        console.log(projects);
+        if (projects)
+            return projects.Items;
+        else
+            return [];
+    } catch (e)
+    {
+        console.log(e);
+        return;
+    }
 }
 
 /**
@@ -186,11 +211,96 @@ function getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, free
  * @return array containing project ids
  */
 async function getTasks(projectId, numTasks) {
-    var tasks = await API.get("API", `/api/task?projectId={projectId}&taskStatus=new`);
+    /*var tasks = await API.get("API", `/api/task?projectId={projectId}&taskStatus=new`);
     if (tasks)
         return tasks.Items.slice(0, numTasks);
     else
-        return [];
+        return [];*/
+    try{
+        const lambda = new AWS.Lambda();
+
+        const params = {
+            FunctionName: lambdaName + "-listTasks",
+            Payload: JSON.stringify({
+                    "queryStringParameters": {
+                        "projectId":projectId,
+                        "taskStatus":"new"
+                    }
+            }),
+        };
+
+        console.log("calling getTaskLambda");
+        console.log(params);
+        const tasks = await getLambda(lambda, params);
+        console.log('getLambda returned');
+        console.log(tasks);
+        if (tasks)
+            return tasks.Items.slice(0, numTasks);
+        else
+            return [];
+    } catch (e)
+    {
+        console.log(e);
+        return;
+    }
+
+
+}
+
+
+/**
+ * Function that gets specified number of top tasks within the project
+ * @param projectId - id of project
+ * @param numTasks - number of tasks to return for the project
+ * @return array containing project ids
+ */
+async function getPreferencesFromDb() {
+    try{
+        const lambda = new AWS.Lambda();
+
+        const params = {
+            FunctionName: lambdaName + "-retrieveUserPreference"
+        };
+
+        console.log("calling getPreferencesLambda");
+        console.log(params);
+        const preferences = await getLambda(lambda, params);
+        console.log('getLambda returned');
+        console.log(preferences);
+        if (preferences)
+            return preferences;
+    } catch (e) {
+        console.log(e);
+    }
+    return { Count: 0 };
+}
+
+/*
+ * function that gets user preferences from db, if there is nothing in db it
+ * returns default values
+ * @return user pereferences object
+ */
+async function getPreferences() {
+    var preferences = await getPreferencesFromDb(),
+        schedule = { start: { h: 9, m: 0 },
+                     lunch: { start: { h: 12, m: 0 },
+                              end: { h: 13, m: 0 } },
+                      end: { h: 18, m: 0 } },
+        userConfig = null;
+
+    const defaultConfig = { pomodoroSize: 25,
+                            shortBreakSize: 5,
+                            longBreakSize: 20,
+                            workSchedule: null };
+
+    if(preferences.Count==1) {
+        userConfig = preferences.Items[0];
+    } else {
+        userConfig = defaultConfig;
+    }
+
+    if (userConfig.workSchedule==undefined) userConfig.workSchedule = schedule;
+    return userConfig;
 }
 
 /**
@@ -296,33 +406,7 @@ async function pushScheduleToDb(userId, schedule, update=false) {
     });
 }
 
-/*
- * function that gets user preferences from db, if there is nothing in db it
- * returns default values
- * @return user pereferences object
- */
-async function getPreferences() {
-    var preferences = await API.get("API",`/api/preference`),
-        schedule = { start: { h: 9, m: 0 },
-                     lunch: { start: { h: 12, m: 0 },
-                              end: { h: 13, m: 0 } },
-                      end: { h: 18, m: 0 } },
-        userConfig = null;
 
-    const defaultConfig = { pomodoroSize: 25,
-                            shortBreakSize: 5,
-                            longBreakSize: 20,
-                            workSchedule: null };
-
-    if(preferences.Count==1) {
-        userConfig = preferences.Items[0];
-    } else {
-        userConfig = defaultConfig;
-    }
-
-    if (userConfig.workSchedule==undefined) userConfig.workSchedule = schedule;
-    return userConfig;
-}
 
 /**
  * function creates schedule and returns it
@@ -342,7 +426,7 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
 
     projects.forEach(function(project){
         numOfTasks = Math.round(project.weight/100*availPomodoros.total);
-        tasks = tasks.concat(getTasks(project._id, numOfTasks))
+        tasks = tasks.concat( getTasks(project._id, numOfTasks))
     });
 
     availPomodoros.slots.forEach(function(timeslot, n) {
