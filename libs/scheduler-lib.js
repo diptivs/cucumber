@@ -165,15 +165,12 @@ async function getProjects(userId) {
         const projects = await getLambda(lambda, params);
         console.log('getLambda returned');
         console.log(projects);
-        if (projects)
-            return projects.Items;
-        else
-            return [];
-    } catch (e)
-    {
+        if (projects.body)
+            return projects.body.Items;
+    } catch (e) {
         console.log(e);
-        return;
     }
+    return [];
 }
 
 /**
@@ -235,17 +232,12 @@ async function getTasks(projectId, numTasks) {
         const tasks = await getLambda(lambda, params);
         console.log('getLambda returned');
         console.log(tasks);
-        if (tasks)
-            return tasks.Items.slice(0, numTasks);
-        else
-            return [];
-    } catch (e)
-    {
+        if (tasks.body)
+            return tasks.body.Items.slice(0, numTasks);
+    } catch (e) {
         console.log(e);
-        return;
     }
-
-
+    return [];
 }
 
 
