@@ -6,7 +6,7 @@ import * as dynamoDbLib from "./dynamodb-lib";
 
 AWS.config.region = config.apiGateway.REGION;
 
-const lambdaName = "pomafocus-api-" + process.env.stage;
+const lambdaName = "pomafocus-api-" + process.env.DEPLOYMENT_STAGE;
 
 const getLambda = (lambda, params) => new Promise((resolve, reject) => {
   lambda.invoke(params, (error, data) => {
