@@ -33,6 +33,7 @@ provider:
     taskstableName: ${self:custom.taskstableName}
     preferncestableName: ${self:custom.preferncestableName}
     scheduletableName: ${self:custom.scheduletableName}
+    stage: ${opt:stage, self:provider.stage}
 
   iamRoleStatements:
     - Effect: Allow
