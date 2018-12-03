@@ -27,7 +27,7 @@ export async function create(event, context, callback) {
 		const userparams = {
 			TableName: process.env.userstableName,
 			Key: {
-				userId: event.requestContext.identity.cognitoIdentityId,
+				userId: data.userId,
 			},
 			UpdateExpression: 'ADD taskId :taskId',
 			ExpressionAttributeValues: {

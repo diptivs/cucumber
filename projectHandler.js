@@ -124,96 +124,115 @@ export async function listProjectsForUser(event, context, callback) {
 
 //Lists all projects of the manager
 export async function listAllProjectsDetailsForUser(event, context, callback) {	
-	const params = {
-		TableName: process.env.userstableName,
-		Key: {
-			userId: event.requestContext.identity.cognitoIdentityId
-		}
-	};
-	try {
-		console.log(params);
-		const userScanResult = await dynamoDbLib.call("get", params);
-		console.log(userScanResult);
-		if (userScanResult.Item) {
-			// Return the retrieved item
-			const dynamoDb = new AWS.DynamoDB.DocumentClient();
-			var projectparams;
-			if(userScanResult.Item.userRole == "manager") {
-				projectparams = {
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();
+	var projectparams;
+	var contributorprojectparams;
+			//removed role check as we are not supporting role based model any more	and checking based on prjectOwner and projectContributors		
+		try {
+			projectparams = {
 				TableName: process.env.projectstableName,
 				FilterExpression: ' projectOwner = :userId',
 				ExpressionAttributeValues: {
 				':userId': event.requestContext.identity.cognitoIdentityId		
 				}
 				};				
-			}else if(userScanResult.Item.userRole=="developer") {
-				projectparams = {
+			contributorprojectparams = {
 				TableName: process.env.projectstableName,
 				FilterExpression: 'contains (projectContributors, :userId)',
 				ExpressionAttributeValues: {
 				':userId': event.requestContext.identity.cognitoIdentityId		
 				}
 			};
-		}
+		
 		try {
 			console.log(projectparams);
 			var projectScanResult = await dynamoDb.scan(projectparams).promise();
-			var taskScanResult;
-			console.log(projectScanResult);			
+			var projectScanResultContributors = await dynamoDb.scan(contributorprojectparams).promise();				
+			var projectTaskList = [];
+			console.log(projectTaskList);
+			console.log(projectScanResult);	
+			console.log("If user is contribuor, fetch his projects" +projectScanResultContributors);	
 			if(projectScanResult){
-				if(userScanResult.Item.userRole=="manager") {
-					for(var i=0;i<projectScanResult.Count;i++) {
-						console.log(projectScanResult.Items[i].projectId);
-						const taskParams={
+				console.log("calling function");
+					var role="OWNER_ROLE";
+					var result = await fetchtasksForProject(projectScanResult,role,event.requestContext.identity.cognitoIdentityId);	
+					console.log(result);
+											
+					projectTaskList.push(result);
+					
+			}
+			console.log(projectScanResult);				
+			if(projectScanResultContributors) {
+				console.log("calling function");
+					var role="CONTRIBUTOR_ROLE";
+					var result = await fetchtasksForProject(projectScanResultContributors,role,event.requestContext.identity.cognitoIdentityId);
+					console.log(result);					
+					
+					projectTaskList.push(result);
+			}
+			console.log("Final result : "+projectScanResult);			
+			callback(null,success(projectTaskList));		
+			
+		}catch (e) {
+		console.log(e);
+		callback(null, failure({ status: false, error: "Failed to fetch task details" }));
+	}
+	
+		}catch (e) {
+			callback(null, failure({ status: false , error: "User does not exist." })); 
+		}
+}
+
+ async function fetchtasksForProject(projectList,role,userId) {
+	var taskScanResult;
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
+	if(role=="OWNER_ROLE") {
+	for(var i=0;i<projectList.Count;i++) {
+					console.log(projectList.Items[i].projectId);
+					const taskParams={
 						TableName: process.env.taskstableName,
 						FilterExpression: '#projectId = :projectId',
 						ExpressionAttributeNames: {
 						'#projectId': 'projectId'
 						},
 						ExpressionAttributeValues: {
-						':projectId' :  projectScanResult.Items[i].projectId
+						':projectId' :  projectList.Items[i].projectId
 						},
 					};
 					console.log(taskParams);
 					taskScanResult = await dynamoDb.scan(taskParams).promise();
 					console.log(taskScanResult);
-					projectScanResult.Items[i].tasks=taskScanResult.Items;
+					projectList.Items[i].tasks=taskScanResult.Items;
 					
 				}
-				callback(null, success(projectScanResult));
-							
-			}else if(userScanResult.Item.userRole=="developer") {
-			for(var i=0;i<projectScanResult.Count;i++) {
-						console.log(projectScanResult.Items[i].projectId);
-						const taskParams={
+	} else if(role=="CONTRIBUTOR_ROLE") {
+		for(var i=0;i<projectList.Count;i++) {
+					console.log(projectList.Items[i].projectId);
+					const taskParams={
 						TableName: process.env.taskstableName,
 						FilterExpression: '#projectId = :projectId AND #userId = :userId',
 						ExpressionAttributeNames: {
-						'#userId': 'userId',
-						'#projectId': 'projectId'
+						'#projectId': 'projectId',
+						'#userId' : 'userId'
 						},
 						ExpressionAttributeValues: {
-						':userId': event.requestContext.identity.cognitoIdentityId,
-						':projectId' :  projectScanResult.Items[i].projectId
+						':projectId' :  projectList.Items[i].projectId,
+						':userId' : userId
 						},
 					};
 					console.log(taskParams);
 					taskScanResult = await dynamoDb.scan(taskParams).promise();
 					console.log(taskScanResult);
-					projectScanResult.Items[i].tasks=taskScanResult.Items;
+					projectList.Items[i].tasks=taskScanResult.Items;
 					
 				}
-				callback(null, success(projectScanResult));	
+	}
 			
-		}
-		}}catch (e) {
-		console.log(e);
-		callback(null, failure({ status: false, error: "Failed to fetch task details" }));
-	}
-	}}
-	catch (e) {
-	callback(null, failure({ status: false , error: "User does not exist." })); 
-	}
+				console.log(taskScanResult);
+				console.log(projectList);
+				console.log("Returning result:"+ projectList.Items);				
+				return projectList.Items;			
+		
 }
 
 //Deletes project based on the projectid specified
@@ -285,6 +304,7 @@ export async function update(event, context, callback) {
 
 	try {
 		const result = await dynamoDbLib.call("update", params);
+		
 		callback(null, success({ status: true }));
 	} catch (e) {
 		console.log(e)
