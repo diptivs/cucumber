@@ -19,7 +19,13 @@ Amplify.configure({
 	}
 });
 
-
+function taskCompare(a, b){
+    if (a.start > b.start){
+        return 1;
+    } else {
+        return -1;
+    }
+}
 /****** Functions for schedule Table DB ******/
 //Add new schedule
 async function createScheduleInDB(userID, scheduleDate, schedule) {
@@ -499,8 +505,99 @@ async function snoozeTask(userId, prefrences, taskId) {
 
     schedule.unshift(snoozedTask);
     schedule = schedSlicePast.concat(schedule);
-    // update each day in db
-    pushScheduleToDb(userId, schedule);
+    pushScheduleToDb(userId, schedule, true);
+    return schedule;
+}
+
+async function skipTask(userId, taskId) {
+    const today = date.format(new Date(), 'YYYY-MM-DD'),
+          tomorrow = date.format( date.addDays(new Date(), 1), 'YYYY-MM-DD'),
+          scheduleToday = await getScheduleRangeFromDB(userId, today, today),
+          scheduleRest = await getScheduleRangeFromDB(userId, tomorrow);
+
+    var skippedTask = null;
+        schedSplitIndex = null,
+        useNextTask = false; // flag to indicate that the timeslot of next task should be used
+
+    for(var i=0; i<scheduleToday.Items[0].schedule.length; i++){
+        var item = scheduleToday.Items[0].schedule[i];
+        if (item.type=='task') {
+            if (item.taskId==taskId) {
+                useNextTask = true;
+                skippedTask = item;
+                schedSplitIndex = i;
+                break
+            }
+        }
+    }
+
+    var schedSlicePast = scheduleToday.Items[0].schedule.slice(0, schedSplitIndex),
+        schedSliceFuture = scheduleToday.Items[0].schedule.slice(schedSplitIndex+1),
+        start=skippedTask.start
+        end=skippedTask.end,
+        schedule = flattenSchedule(scheduleRest, schedSliceFuture);
+
+    for (var i=0; i<schedule.length; i++) {
+        var item = schedule[i];
+        if (item.type=='task') {
+            var newStart = new Date(start),
+                newEnd = new Date(end),
+
+            start = item.start;
+            end = item.end;
+            item.start = newStart;
+            item.end = newEnd;
+
+            if (item.projectId != skippedTask.projectId) {
+                skippedTask.start = start;
+                skippedTask.end = end;
+                break;
+            }
+        }
+    }
+
+    schedule.unshift(skippedTask);
+    schedule = schedSlicePast.concat(schedule);
+    schedule.sort(taskCompare);
+    pushScheduleToDb(userId, schedule, true);
+    return schedule;
+
+}
+
+/*
+ * function that swappes tasks in the schedule
+ *
+ */
+async function swapTasks(userId, resched) {
+    const itemDate = date.format(new Date(resched.start), 'YYYY-MM-DD'),
+          scheduleDaily = await getScheduleRangeFromDB(userId, itemDate),
+          schedule = flattenSchedule(scheduleDaily),
+          itemLength = date.subtract(new Date(resched.end), new Date(resched.start)).toMinutes(),
+          reorg = false,
+          moveItem = null,
+          oldStart = null,
+          oldEnd = null,
+          newIndex = null,
+          oldIndex;
+
+    schedule.forEach(function(item, i){
+        if (item.start=>resched.start&&item.end<=resched.end&&item.type=='task'&&!moveItem) {
+            moveItem = item;
+            newIndex = i
+        }
+        if (resched.taskId!=undefined&&item.taskId!=undefined&&resched.taskId==item.taskId) {
+            resched.title = item.title;
+            resched.desc = item.desc;
+            oldStart = item.start;
+            oldEnd = item.end;
+            oldIndex = i;
+        }
+    });
+    moveItem.start = oldStart;
+    moveItem.end = oldEnd;
+    schedule[newIndex] = resched;
+    schedule[oldIndex] = moveItem;
+    pushScheduleToDb(userId, schedule, true);
     return schedule;
 }
 
@@ -515,7 +612,7 @@ export async function getSchedule(userId, startDateStr, endDateStr) {
         const schedule = await getScheduleRangeFromDB(userId, startDateStr, endDateStr);
 
         if (schedule && schedule.Items.length) {
-            response.Items = flatten_schedule(schedule);
+            response.Items = flattenSchedule(schedule);
         } else {
             response.Items = await createSchedule(userId, startDateStr, endDateStr);
         }
@@ -525,31 +622,30 @@ export async function getSchedule(userId, startDateStr, endDateStr) {
     return response;
 }
 
+/*
+ * function that performs rescheduling
+ * @param userId - cognito sub for user
+ * @param data - POST body containing one of the following:
+ *               { snooze: <taskId> },
+ *               { skip: <taskId> },
+ *               { reschedule: { taskId: <taskId>,
+ *                               start: <startTime>,
+ *                               end: <endtime> }}
+ * @returns - schedule
+ */
 export async function reSchedule(userId, data)
 {
+    console.log("Enter reSchedule function");
     var preferences = await getPreferences(),
         schedule = [];
 
     if (data.snooze) {
-        schedule = snoozeTask(userId, preferences, data.snooze);
+        schedule = await snoozeTask(userId, preferences, data.snooze);
+    } else if (data.skip) {
+        schedule = await skipTask(userId, data.skip);
+    } else if (data.reschedule) {
+        schedule = await swapTasks(userId, data.reschedule)
     }
-    console.log("Enter reSchedule function");
 
-
-    schedule.push({
-                "title": "test1",
-                "desc": "test1.task.description",
-                "start": "2018-12-01T09:00:00.000Z",
-                "end": "2018-12-01T09:25:00.000Z",
-                "taskId": "task1.id"
-            });
-    schedule.push({
-                "title": "test2",
-                "desc": "test2.task.description",
-                "start": "2018-12-01T09:25:00.000Z",
-                "end": " 2018-12-01T09:30:00.000Z",
-                "taskId": "task2.id"
-            });
-
-    return createScheduleInDB(userID, scheduleDay, schedule);
+    return schedule;
 }
