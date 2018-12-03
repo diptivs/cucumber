@@ -655,17 +655,17 @@ async function skipTask(userId, taskId) {
 async function swapTasks(userId, resched) {
     const itemDate = date.format(new Date(resched.start), 'YYYY-MM-DD'),
           scheduleDaily = await getScheduleRangeFromDB(userId, itemDate),
-          schedule = flattenSchedule(scheduleDaily),
-          itemLength = date.subtract(new Date(resched.end), new Date(resched.start)).toMinutes(),
-          reorg = false,
-          moveItem = null,
-          oldStart = null,
-          oldEnd = null,
-          newIndex = null,
-          oldIndex;
+          itemLength = date.subtract(new Date(resched.end), new Date(resched.start)).toMinutes();
+    var reorg = false,
+        schedule = flattenSchedule(scheduleDaily),
+        moveItem = null,
+        oldStart = null,
+        oldEnd = null,
+        newIndex = null,
+        oldIndex = null;
 
     schedule.forEach(function(item, i){
-        if (item.start=>resched.start&&item.end<=resched.end&&item.type=='task'&&!moveItem) {
+        if (item.start>=resched.start&&item.end<=resched.end&&item.type=='task'&&!moveItem) {
             moveItem = item;
             newIndex = i
         }
