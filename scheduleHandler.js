@@ -9,11 +9,16 @@ import * as schedulerLib from "./libs/scheduler-lib";
 //Get Schedule for given time frame
 //input: GET with queryparameter: ?startDate=<>,endDate=<>
 export async function getSchedule(event, context, callback) {
+    var create = false;
 	try {
 		console.log("calling getSchedule")
+        if (event.queryStringParameters.create) {
+            create = true;
+        }
 		const result = await schedulerLib.getSchedule(event.requestContext.identity.cognitoIdentityId,
                                                       event.queryStringParameters.startDate,
-                                                      event.queryStringParameters.endDate);
+                                                      event.queryStringParameters.endDate,
+                                                      create);
 		console.log("returned from getSchedule" + result );
 		console.log(result.Items);
 		if (result) {

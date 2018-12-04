@@ -162,18 +162,16 @@ async function getProjects(userId) {
 
         console.log("calling getProjectsLambda");
         console.log(params);
-        const projects = await getLambda(lambda, params);
-        console.log('getLambda returned');
-        console.log(projects);
-        if (projects)
-            return projects.Items;
-        else
-            return [];
-    } catch (e)
-    {
+        const resp = await getLambda(lambda, params);
+        const payload = JSON.parse(resp.Payload);
+
+        console.log('getLambda returned payload', payload);
+        if (payload.body)
+            return JSON.parse(payload.body).Items;
+    } catch (e) {
         console.log(e);
-        return;
     }
+    return [];
 }
 
 /**
@@ -225,27 +223,25 @@ async function getTasks(projectId, numTasks) {
             Payload: JSON.stringify({
                     "queryStringParameters": {
                         "projectId":projectId,
-                        "taskStatus":"new"
+                        "taskStatus":"New"
                     }
             }),
         };
 
         console.log("calling getTaskLambda");
         console.log(params);
-        const tasks = await getLambda(lambda, params);
-        console.log('getLambda returned');
-        console.log(tasks);
-        if (tasks)
-            return tasks.Items.slice(0, numTasks);
-        else
-            return [];
-    } catch (e)
-    {
+        const resp = await getLambda(lambda, params);
+        const payload = JSON.parse(resp.Payload);
+
+        console.log('getLambda returned payload', payload);
+        console.log('numTasks', numTasks);
+        if (payload.body)
+            return JSON.parse(payload.body).Items;
+            //return JSON.parse(payload.body).Items.slice(0, numTasks);
+    } catch (e) {
         console.log(e);
-        return;
     }
-
-
+    return [];
 }
 
 
@@ -425,10 +421,11 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         tasks = [],
         taskCount = 0;
 
-    projects.forEach(function(project){
-        numOfTasks = Math.round(project.weight/100*availPomodoros.total);
-        tasks = tasks.concat( getTasks(project._id, numOfTasks))
-    });
+    for (const project of projects) {
+        var numOfTasks = Math.round(project.weight/100*availPomodoros.total);
+        var retTasks = await getTasks(project.projectId, numOfTasks);
+        tasks = tasks.concat( retTasks );
+    }
 
     availPomodoros.slots.forEach(function(timeslot, n) {
         var start_time = timeslot.start,
@@ -441,14 +438,15 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         }
 
         tasksForSlot.forEach(function(task){
-            end_time = date.addMinutes(start_time, pomodoroSize);
+            var end_time = date.addMinutes(start_time, pomodoroSize);
             schedule.push({
-                title: task.name,
-                desc: task.description,
+                title: task.taskName,
+                desc: task.taskDescription,
                 start: start_time,
                 end: end_time,
-                taskId: task.id,
-                type: 'task'
+                taskId: task.taskId,
+                type: 'task',
+                projectId: task.ProjectId
             });
             start_time = date.addMinutes(end_time, 0);
             if (taskCount<3) {
@@ -691,12 +689,12 @@ async function swapTasks(userId, resched) {
  * then it calls createSchedule that writes new schedule to db.
  *
  */
-export async function getSchedule(userId, startDateStr, endDateStr) {
+export async function getSchedule(userId, startDateStr, endDateStr, create=false) {
     var response = { Items: [] };
     try {
         const schedule = await getScheduleRangeFromDB(userId, startDateStr, endDateStr);
 
-        if (schedule && schedule.Items.length) {
+        if (schedule && schedule.Items.length && !create) {
             response.Items = flattenSchedule(schedule);
         } else {
             response.Items = await createSchedule(userId, startDateStr, endDateStr);
