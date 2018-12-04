@@ -423,7 +423,7 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
 
     for (const project of projects) {
         var numOfTasks = Math.round(project.weight/100*availPomodoros.total);
-        var retTasks = await getTasks(project._id, numOfTasks);
+        var retTasks = await getTasks(project.projectId, numOfTasks);
         tasks = tasks.concat( retTasks );
     }
 
