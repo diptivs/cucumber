@@ -162,11 +162,12 @@ async function getProjects(userId) {
 
         console.log("calling getProjectsLambda");
         console.log(params);
-        const projects = await getLambda(lambda, params);
-        console.log('getLambda returned');
-        console.log(projects);
-        if (projects.body)
-            return projects.body.Items;
+        const resp = await getLambda(lambda, params);
+        const payload = JSON.parse(resp.Payload);
+
+        console.log('getLambda returned payload', payload);
+        if (payload.body)
+            return JSON.parse(payload.body).Items;
     } catch (e) {
         console.log(e);
     }
@@ -229,11 +230,12 @@ async function getTasks(projectId, numTasks) {
 
         console.log("calling getTaskLambda");
         console.log(params);
-        const tasks = await getLambda(lambda, params);
-        console.log('getLambda returned');
-        console.log(tasks);
-        if (tasks.body)
-            return tasks.body.Items.slice(0, numTasks);
+        const resp = await getLambda(lambda, params);
+        const payload = JSON.parse(resp.Payload);
+
+        console.log('getLambda returned payload', payload);
+        if (payload.body)
+            return JSON.parse(payload.body).Items.slice(0, numTasks);
     } catch (e) {
         console.log(e);
     }
@@ -435,12 +437,13 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         tasksForSlot.forEach(function(task){
             end_time = date.addMinutes(start_time, pomodoroSize);
             schedule.push({
-                title: task.name,
-                desc: task.description,
+                title: task.taskName,
+                desc: task.taskDescription,
                 start: start_time,
                 end: end_time,
-                taskId: task.id,
-                type: 'task'
+                taskId: task.taskId,
+                type: 'task',
+                projectId: task.ProjectId
             });
             start_time = date.addMinutes(end_time, 0);
             if (taskCount<3) {
@@ -683,12 +686,12 @@ async function swapTasks(userId, resched) {
  * then it calls createSchedule that writes new schedule to db.
  *
  */
-export async function getSchedule(userId, startDateStr, endDateStr) {
+export async function getSchedule(userId, startDateStr, endDateStr, create=false) {
     var response = { Items: [] };
     try {
         const schedule = await getScheduleRangeFromDB(userId, startDateStr, endDateStr);
 
-        if (schedule && schedule.Items.length) {
+        if (schedule && schedule.Items.length && !create) {
             response.Items = flattenSchedule(schedule);
         } else {
             response.Items = await createSchedule(userId, startDateStr, endDateStr);
