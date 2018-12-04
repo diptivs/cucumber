@@ -421,7 +421,7 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
 
     projects.forEach(function(project){
         var numOfTasks = Math.round(project.weight/100*availPomodoros.total);
-        tasks = tasks.concat( getTasks(project._id, numOfTasks))
+        tasks = tasks.concat( await getTasks(project._id, numOfTasks))
     });
 
     availPomodoros.slots.forEach(function(timeslot, n) {
