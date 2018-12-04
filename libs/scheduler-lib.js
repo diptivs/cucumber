@@ -234,6 +234,7 @@ async function getTasks(projectId, numTasks) {
         const payload = JSON.parse(resp.Payload);
 
         console.log('getLambda returned payload', payload);
+        console.log('numTasks', numTasks);
         if (payload.body)
             return JSON.parse(payload.body).Items.slice(0, numTasks);
     } catch (e) {
