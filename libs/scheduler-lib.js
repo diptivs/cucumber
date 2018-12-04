@@ -433,6 +433,8 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         tasks = tasks.slice(timeslot.count);
 
         if (timeslot.type !== 'free') {
+            timeslot.start = timeslot.start.toISOString();
+            timeslot.end = timeslot.end.toISOString();
             schedule.push(timeslot);
             return;
         }
@@ -442,8 +444,8 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
             schedule.push({
                 title: task.taskName,
                 desc: task.taskDescription,
-                start: start_time,
-                end: end_time,
+                start: start_time.toISOString(),
+                end: end_time.toISOString(),
                 taskId: task.taskId,
                 type: 'task',
                 projectId: task.ProjectId
@@ -454,8 +456,8 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
                 schedule.push({
                     title: 'Short Break',
                     descr: 'Time to take a short break',
-                    start: start_time,
-                    end: end_time,
+                    start: start_time.toISOString(),
+                    end: end_time.toISOString(),
                     type: 'break'
                 });
                 taskCount++;
@@ -464,8 +466,8 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
                 schedule.push({
                     title: 'Long Break',
                     descr: 'Time to take a long break',
-                    start: start_time,
-                    end: end_time,
+                    start: start_time.toISOString(),
+                    end: end_time.toISOString(),
                     type: 'break'
                 });
                 taskCount=0;
