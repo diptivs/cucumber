@@ -236,7 +236,8 @@ async function getTasks(projectId, numTasks) {
         console.log('getLambda returned payload', payload);
         console.log('numTasks', numTasks);
         if (payload.body)
-            return JSON.parse(payload.body).Items.slice(0, numTasks);
+            return JSON.parse(payload.body).Items;
+            //return JSON.parse(payload.body).Items.slice(0, numTasks);
     } catch (e) {
         console.log(e);
     }
@@ -420,10 +421,11 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         tasks = [],
         taskCount = 0;
 
-    projects.forEach(function(project){
+    for (const project of projects) {
         var numOfTasks = Math.round(project.weight/100*availPomodoros.total);
-        tasks = tasks.concat( await getTasks(project._id, numOfTasks))
-    });
+        var retTasks = await getTasks(project._id, numOfTasks);
+        tasks = tasks.concat( retTasks );
+    }
 
     availPomodoros.slots.forEach(function(timeslot, n) {
         var start_time = timeslot.start,
