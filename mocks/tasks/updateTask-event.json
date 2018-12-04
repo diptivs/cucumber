@@ -1,6 +1,6 @@
 {
- "body": "{\"taskName\":\"Implementation2\", \"taskDescription\":\"Testing12\", \"taskStatus\":\"assigned\",\"taskPomodoroCount\":\"4\",\"userId\":\"USER-SUB-104\",\"taskPomodoroEndTime\":\"13-12-2222\"}", 
+ "body": "{\"taskName\":\"Implementation2\", \"taskDescription\":\"Testing12\", \"taskStatus\":\"assigned\",\"taskPomodoroCount\":\"4\",\"userId\":\"DemoUserDev\",\"taskPriority\":8}", 
 "pathParameters": {
-"id": "a684d240-e781-11e8-9588-c95c332264c1"
+"id": "5b5eb240-f1fe-11e8-bbd8-679bc5d4159e"
 }
 }
