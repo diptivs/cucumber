@@ -1,8 +1,8 @@
 { 
-  "body": "{\"projectName\":\"Cloud_Project2\",\"projectDescription\":\"Setup3\", \"projectStatus\":\"Modified\", \"projectOwner\":\"123\",\"projectContributors\":[\"4\",\"55\"],\"projectEndDate\":\"2016-08-18\"}",
+  "body": "{\"projectName\":\"Cloud_Project2\",\"projectDescription\":\"Setup3\", \"projectStatus\":\"Modified\", \"projectOwner\":\"12456\",\"projectContributors\":[\"DemoUserDev\"],\"projectEndDate\":\"2016-08-18\"}",
  
 "pathParameters": {
-"id": "2a172ad0-e788-11e8-982d-dbaf0b8d1793"
+"id": "5f1dc3a0-f1de-11e8-84f7-6999b71c30de"
 }
 }
 
