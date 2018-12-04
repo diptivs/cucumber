@@ -223,7 +223,7 @@ async function getTasks(projectId, numTasks) {
             Payload: JSON.stringify({
                     "queryStringParameters": {
                         "projectId":projectId,
-                        "taskStatus":"new"
+                        "taskStatus":"New"
                     }
             }),
         };
