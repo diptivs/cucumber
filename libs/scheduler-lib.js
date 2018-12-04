@@ -435,7 +435,7 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         }
 
         tasksForSlot.forEach(function(task){
-            end_time = date.addMinutes(start_time, pomodoroSize);
+            var end_time = date.addMinutes(start_time, pomodoroSize);
             schedule.push({
                 title: task.taskName,
                 desc: task.taskDescription,
