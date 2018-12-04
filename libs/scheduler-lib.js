@@ -34,7 +34,7 @@ async function createScheduleInDB(userID, scheduleDate, schedule) {
         Item: {
             userId: userID,
             scheduleDate: scheduleDate,
-            schedule : {'L': schedule}
+            schedule: schedule
         }
     };
 
@@ -490,7 +490,7 @@ function flattenSchedule(schedule, prefix=null) {
     var flatSched = [];
 
     schedule.Items.forEach(function(day){
-        flatSched.concat(day.schedule)
+        flatSched = flatSched.concat(day.schedule);
     });
 
     if (prefix) {
@@ -693,7 +693,6 @@ export async function getSchedule(userId, startDateStr, endDateStr, create=false
     var response = { Items: [] };
     try {
         const schedule = await getScheduleRangeFromDB(userId, startDateStr, endDateStr);
-
         if (schedule && schedule.Items.length && !create) {
             response.Items = flattenSchedule(schedule);
         } else {
