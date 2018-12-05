@@ -6,7 +6,7 @@ import AWS from "aws-sdk";
 
 //creates new task
 export async function create(event, context, callback) {
-	const docClient = new AWS.DynamoDB.DocumentClient();	
+	const docClient = new AWS.DynamoDB.DocumentClient();
 	const data = JSON.parse(event.body);
 	const params = {
 		TableName: process.env.taskstableName,
@@ -20,7 +20,7 @@ export async function create(event, context, callback) {
 			taskPomodoroCount: data.taskPomodoroCount,
 			taskPomodoroStartTime: data.taskPomodoroStartTime,
 			taskPomodoroEndTime: data.taskPomodoroEndTime,
-			taskPriority: data.taskPriority					
+			taskPriority: data.taskPriority
 		}
 	};
 	try {
@@ -34,7 +34,7 @@ export async function create(event, context, callback) {
 			ExpressionAttributeValues: {
 			':taskId': docClient.createSet([params.Item.taskId])
 			},
-		ReturnValues: 'UPDATED_NEW'		
+		ReturnValues: 'UPDATED_NEW'
 		}
 		try {
 			const result = await dynamoDbLib.call("update", userparams);
@@ -45,10 +45,10 @@ export async function create(event, context, callback) {
 			console.log("entered catch" + e);
 			callback(null, failure({ status: false, error: "Task update on user failed." }));
 		}
-		callback(null, failure({ status: true }));		
+		callback(null, failure({ status: true }));
 	} catch (e) {
 	callback(null, failure({ status: false })); }
-	
+
 }
 //deletes the task specified
 export async function deleteTask(event, context, callback) {
@@ -114,60 +114,54 @@ export async function retrieve(event, context, callback) {
 
 //List Tasks-allowed query parameters are userId,projectId,taskStatus
 export async function listTasks(event, context, callback) {
-	const dynamoDb = new AWS.DynamoDB.DocumentClient();	
-	var params;
+	var attrValues = {},
+        filterExpression = null,
+        updateExpression = function(expr, newStr){
+            if (expr) {
+                expr = expr+" AND "+newStr;
+            } else {
+                expr = newStr;
+            }
+            return expr
+        };
+
 	if(event.queryStringParameters.userId) {
-	 params = {
-		TableName: process.env.taskstableName,
-		FilterExpression: '#userId = :userId',
-		ExpressionAttributeNames: {
-		'#userId': 'userId',
-		},
-		ExpressionAttributeValues: {
-        ':userId': event.queryStringParameters.userId,
-		},
-	};
-	} else if(event.queryStringParameters.projectId) {
-		if(event.queryStringParameters.taskStatus){
-		params = {
-		TableName: process.env.taskstableName,
-		FilterExpression: '#projectId = :projectId AND #taskStatus = :taskStatus',
-		ExpressionAttributeNames: {
-		'#projectId': 'projectId',
-		'#taskStatus': 'taskStatus',
-		},
-		ExpressionAttributeValues: {
-        ':projectId': event.queryStringParameters.projectId,
-		':taskStatus': event.queryStringParameters.taskStatus	
-		},
-	};
-		} else{
-		params = {
-		TableName: process.env.taskstableName,
-		FilterExpression: '#projectId = :projectId',
-		ExpressionAttributeNames: {
-		'#projectId': 'projectId',
-		},
-		ExpressionAttributeValues: {
-        ':projectId': event.queryStringParameters.projectId,
-		},
-	};
+        attrValues[':userId'] = event.queryStringParameters.userId;
+        filterExpression = updateExpression(filterExpression, "userId = :userId");
+    }
+
+    if(event.queryStringParameters.projectId) {
+        attrValues[':projectId'] = event.queryStringParameters.projectId;
+        filterExpression = updateExpression(filterExpression, "projectId = :projectId");
+    }
+
+	if(event.queryStringParameters.taskStatus){
+        attrValues[':taskStatus'] = event.queryStringParameters.taskStatus;
+        filterExpression = updateExpression(filterExpression, "taskStatus = :taskStatus");
 	}
-	}
-	try {	
-		const scanResult = await dynamoDb.scan(params).promise();				
+
+	const dynamoDb = new AWS.DynamoDB.DocumentClient(),
+          params = {
+                TableName: process.env.taskstableName,
+                FilterExpression: filterExpression,
+                ExpressionAttributeValues: attrValues
+            };
+
+    console.log("ListTasks", params);
+	try {
+		const scanResult = await dynamoDb.scan(params).promise();
 		if(scanResult){
 			console.log(scanResult.Items);
 			//sorts based on priority-scan does not support sorting
 			scanResult.Items.sort(function(a, b){return a.taskPriority - b.taskPriority})
-			callback(null, success(scanResult));				
-			}else{
-				callback(err,failure({ status: false , error: "Task does not exist." }));
-			}		
+			callback(null, success(scanResult));
+        }else{
+            callback(err,failure({ status: false , error: "Task does not exist." }));
+        }
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
-}
+    }
 }
 
 export async function updateTaskPriority(event, context, callback) {
@@ -206,17 +200,17 @@ export async function updateTaskPriority(event, context, callback) {
 export async function update(event, context, callback) {
 	const data = JSON.parse(event.body);
 	var params;
-	if(data.taskPomodoroEndTime) {	
+	if(data.taskPomodoroEndTime) {
 		params = {
 		TableName: process.env.taskstableName,
 		Key: {
 			taskId: event.pathParameters.id
 		},
-		UpdateExpression: "SET taskPomodoroEndTime = :taskPomodoroEndTime",		
+		UpdateExpression: "SET taskPomodoroEndTime = :taskPomodoroEndTime",
 		ExpressionAttributeValues: {
-				":taskPomodoroEndTime": data.taskPomodoroEndTime				
+				":taskPomodoroEndTime": data.taskPomodoroEndTime
 		}
-	};	
+	};
 	} else if(data.taskPomodoroStartTime) {
 		params = {
 		TableName: process.env.taskstableName,
@@ -226,9 +220,9 @@ export async function update(event, context, callback) {
 		UpdateExpression: "SET taskPomodoroStartTime = :taskPomodoroStartTime",
 		ExpressionAttributeValues: {
 				":taskPomodoroStartTime": data.taskPomodoroStartTime
-				
+
 			},
-	};		
+	};
 	} else if(data.userId && data.taskName && data.taskDescription && data.taskStatus && data.taskPomodoroCount && data.taskPriority) {
 		params = {
 		TableName: process.env.taskstableName,
@@ -242,7 +236,7 @@ export async function update(event, context, callback) {
 				":taskDescription": data.taskDescription,
 				":taskStatus": data.taskStatus,
 				":taskPomodoroCount": data.taskPomodoroCount,
-				":taskPriority": data.taskPriority			
+				":taskPriority": data.taskPriority
 			},
 			ReturnValues: 'UPDATED_OLD'
 	};

@@ -209,7 +209,7 @@ function getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, free
  * @param numTasks - number of tasks to return for the project
  * @return array containing project ids
  */
-async function getTasks(projectId, numTasks) {
+async function getTasks(userId, projectId, numTasks) {
     /*var tasks = await API.get("API", `/api/task?projectId={projectId}&taskStatus=new`);
     if (tasks)
         return tasks.Items.slice(0, numTasks);
@@ -223,7 +223,8 @@ async function getTasks(projectId, numTasks) {
             Payload: JSON.stringify({
                     "queryStringParameters": {
                         "projectId":projectId,
-                        "taskStatus":"New"
+                        "taskStatus":"New",
+                        "userId": userId
                     }
             }),
         };
@@ -251,12 +252,17 @@ async function getTasks(projectId, numTasks) {
  * @param numTasks - number of tasks to return for the project
  * @return array containing project ids
  */
-async function getPreferencesFromDb() {
+async function getPreferencesFromDb(userId) {
     try{
         const lambda = new AWS.Lambda();
 
         const params = {
-            FunctionName: lambdaName + "-retrieveUserPreference"
+            FunctionName: lambdaName + "-retrieveUserPreference",
+            Payload: JSON.stringify({
+                    "queryStringParameters": {
+                        "userId":userId
+                    }
+            }),
         };
 
         console.log("calling getPreferencesLambda");
@@ -277,8 +283,8 @@ async function getPreferencesFromDb() {
  * returns default values
  * @return user pereferences object
  */
-async function getPreferences() {
-    var preferences = await getPreferencesFromDb(),
+async function getPreferences(userId) {
+    var preferences = await getPreferencesFromDb(userId),
         schedule = { start: { h: 9, m: 0 },
                      lunch: { start: { h: 12, m: 0 },
                               end: { h: 13, m: 0 } },
@@ -409,7 +415,7 @@ async function pushScheduleToDb(userId, schedule, update=false) {
  * function creates schedule and returns it
  */
 async function createSchedule(userId, startDateStr=null, endDateStr=null) {
-    var userConfig = await getPreferences();
+    var userConfig = await getPreferences(userId);
 
     var pomodoroSize = userConfig.pomodoroSize,
         shortBreakSize = userConfig.shortBreakSize,
@@ -423,7 +429,7 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
 
     for (const project of projects) {
         var numOfTasks = Math.round(project.weight/100*availPomodoros.total);
-        var retTasks = await getTasks(project.projectId, numOfTasks);
+        var retTasks = await getTasks(userId, project.projectId, numOfTasks);
         tasks = tasks.concat( retTasks );
     }
 
@@ -448,11 +454,12 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
                 end: end_time.toISOString(),
                 taskId: task.taskId,
                 type: 'task',
-                projectId: task.ProjectId
+                projectId: task.projectId
             });
             start_time = date.addMinutes(end_time, 0);
             if (taskCount<3) {
                 end_time = date.addMinutes(start_time, shortBreakSize);
+                /*
                 schedule.push({
                     title: 'Short Break',
                     descr: 'Time to take a short break',
@@ -460,9 +467,11 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
                     end: end_time.toISOString(),
                     type: 'break'
                 });
+                */
                 taskCount++;
             } else {
                 end_time = date.addMinutes(start_time, longBreakSize)
+                /*
                 schedule.push({
                     title: 'Long Break',
                     descr: 'Time to take a long break',
@@ -470,6 +479,7 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
                     end: end_time.toISOString(),
                     type: 'break'
                 });
+                */
                 taskCount=0;
             }
             start_time = end_time;
@@ -720,7 +730,7 @@ export async function getSchedule(userId, startDateStr, endDateStr, create=false
 export async function reSchedule(userId, data)
 {
     console.log("Enter reSchedule function");
-    var preferences = await getPreferences(),
+    var preferences = await getPreferences(userId),
         schedule = [];
 
     if (data.snooze) {
