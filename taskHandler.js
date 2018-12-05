@@ -3,6 +3,7 @@ import * as dynamoDbLib from "./libs/dynamodb-lib";
 import { success, failure } from "./libs/response-lib";
 import AWS from "aws-sdk";
 
+
 //creates new task
 export async function create(event, context, callback) {
 	const docClient = new AWS.DynamoDB.DocumentClient();
@@ -51,6 +52,7 @@ export async function create(event, context, callback) {
 }
 //deletes the task specified
 export async function deleteTask(event, context, callback) {
+	const docClient = new AWS.DynamoDB.DocumentClient();
 	const params = {
 		TableName: process.env.taskstableName,
 		Key: {
@@ -58,14 +60,32 @@ export async function deleteTask(event, context, callback) {
 		},
 		ReturnValues: 'ALL_OLD'
 	};
-
 	try {
 		const result = await dynamoDbLib.call("delete", params);
-		if(result.Attributes) {
-		callback(null, success({ status: true }));
-		} else {
-			callback(null, failure({ status: false , error: "Unable to delete" }));
+		console.log(result.Attributes);
+		//Logic to delete task from userTable
+		if(result.Attributes) {			
+		const userParams = {
+		TableName: process.env.userstableName,
+		Key: {
+			userId: result.Attributes.userId
+		},
+		UpdateExpression: 'DELETE taskId :taskId',
+		ExpressionAttributeValues: {
+			':taskId': docClient.createSet([result.Attributes.taskId])
+			},
+			ReturnValues: 'UPDATED_NEW'		
+		};
+		try {
+			const updatedResult = await dynamoDbLib.call("update", userParams);
+			console.log("entered try" + updatedResult);
+			callback(null, success({ status: true }));
+		} catch (e) {
+			console.log(e);
+			console.log("entered catch" + e);
+			callback(null, failure({ status: false, error: "Task update on user failed." }));
 		}
+	}	
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
@@ -144,6 +164,38 @@ export async function listTasks(event, context, callback) {
     }
 }
 
+export async function updateTaskPriority(event, context, callback) {
+	const data = JSON.parse(event.body);
+	var params;
+	console.log(data.tasks+data.tasks.length);
+	for(var i=0;i<data.tasks.length;i++) {
+	params = {
+		TableName: process.env.taskstableName,
+		Key: {
+			taskId: data.tasks[i].taskId
+		},
+		UpdateExpression: "SET taskPriority = :taskPriority",		
+		ExpressionAttributeValues: {
+				":taskPriority": data.tasks[i].taskPriority				
+		},
+		ReturnValues: 'UPDATED_NEW'
+	};		
+	try {
+		console.log(params);
+		const result = await dynamoDbLib.call("update", params);
+		console.log(result);
+		callback(null, success(result));
+	} catch (e) {
+		console.log(e)
+		callback(null, failure({ status: false }));
+	}
+}
+
+}
+
+
+	
+
 //Updates task info
 export async function update(event, context, callback) {
 	const data = JSON.parse(event.body);
@@ -186,16 +238,52 @@ export async function update(event, context, callback) {
 				":taskPomodoroCount": data.taskPomodoroCount,
 				":taskPriority": data.taskPriority
 			},
+			ReturnValues: 'UPDATED_OLD'
 	};
 	}
 
 	try {
 		const result = await dynamoDbLib.call("update", params);
+		console.log(result);
+		//Update userTable with taskId for respective Users
+		if(data.userId){
+		const docClient = new AWS.DynamoDB.DocumentClient();	
+		const deleteTaskparams = {
+		TableName: process.env.userstableName,
+		Key: {
+			userId: result.Attributes.userId
+		},
+		UpdateExpression: "DELETE taskId :taskId",
+		ExpressionAttributeValues: {
+				":taskId": docClient.createSet(event.pathParameters.id)				
+			},
+		};
+		const createTaskparams = {
+		TableName: process.env.userstableName,
+		Key: {
+			userId: data.userId
+		},
+		UpdateExpression: "ADD taskId :taskId",
+		ExpressionAttributeValues: {
+				":taskId": docClient.createSet(event.pathParameters.id)				
+			},
+		};
+		try {
+		const deleteResult = await dynamoDbLib.call("update", deleteTaskparams);
+		const createResult = await dynamoDbLib.call("update", createTaskparams);
+		callback(null, success({ status: true }));
+		} catch (e) {
+		console.log(e)
+		callback(null, failure({ status: false ,error:"Failed to update user table"}));
+		}
+		}			
 		callback(null, success({ status: true }));
 	} catch (e) {
 		console.log(e)
 		callback(null, failure({ status: false }));
 	}
 }
+
+
 
 
