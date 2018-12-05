@@ -177,6 +177,14 @@ functions:
           method: put
           cors: true
           authorizer: aws_iam
+  updateTaskPriority:
+    handler: taskHandler.updateTaskPriority
+    events:
+      - http:
+          path: api/task
+          method: put
+          cors: true
+          authorizer: aws_iam
   listTasks:
     handler: taskHandler.listTasks
     events:

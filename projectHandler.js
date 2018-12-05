@@ -280,10 +280,84 @@ export async function deleteProject(event, context, callback) {
 	}
 }
 
+function createTableParams(userId1,projectId1,operation){
+	const docClient = new AWS.DynamoDB.DocumentClient();	
+	console.log(userId1);
+	console.log(projectId1);
+	var projectParams;
+	if(operation=="delete"){
+	projectParams= {
+		TableName: process.env.userstableName,
+		Key: {
+			userId: userId1
+		},
+		UpdateExpression: "DELETE projectId :projectId",
+		ExpressionAttributeValues: {
+				':projectId': docClient.createSet(projectId1),
+			},
+		};
+	}else if(operation=="create") {
+		 projectParams = {
+		TableName: process.env.userstableName,
+		Key: {
+			userId: userId1
+		},
+		UpdateExpression: "ADD projectId :projectId",
+		ExpressionAttributeValues: {
+				':projectId': docClient.createSet([projectId1]),				
+			},
+		};
+	}
+	
+		return projectParams;
+}
+
+async function fetcTaskDetailsAndUpdate(oldUserId,updatedUserId,projectId) {
+		const dynamoDb = new AWS.DynamoDB.DocumentClient();		
+		const fetchTaskIdParams = {
+		TableName: process.env.taskstableName,
+		FilterExpression: 'userId = :userId AND projectId = :projectId',
+		ExpressionAttributeValues: {
+			":userId" : oldUserId,
+			":projectId" : projectId
+		}
+		};
+		try{
+		console.log(fetchTaskIdParams);
+		var taskData = await dynamoDb.scan(fetchTaskIdParams).promise();
+		console.log(taskData);
+		var updateTaskParams;
+		var taskUpdateOnProjectEditResult;
+		for(var i=0;i<taskData.Count;i++){
+		updateTaskParams = {
+			TableName: process.env.taskstableName,			            
+			Key: {
+				taskId: taskData.Items[i].taskId
+				},
+			UpdateExpression: "SET userId = :userId",
+			ExpressionAttributeValues: {
+				':userId': updatedUserId
+				},
+			ReturnValues: 'UPDATED_NEW' 
+		};
+		taskUpdateOnProjectEditResult = await dynamoDbLib.call("update",updateTaskParams);
+		console.log(taskUpdateOnProjectEditResult);
+		}
+		}catch(e){
+			console.log("Failed to update Tasks");
+		}
+		return taskUpdateOnProjectEditResult;
+		
+}			
+		
+		
+		
+
 //Updates the project info
 export async function update(event, context, callback) {
 	const data = JSON.parse(event.body);	
 	const docClient = new AWS.DynamoDB.DocumentClient();
+	const dynamoDb = new AWS.DynamoDB.DocumentClient();		
 	const params = {
 		TableName: process.env.projectstableName,
 		Key: {
@@ -298,16 +372,70 @@ export async function update(event, context, callback) {
 				":projectContributors": docClient.createSet(data.projectContributors),
 				":projectEndDate": data.projectEndDate
 				
-			},		
-			
+			},	
+			ReturnValues: 'UPDATED_OLD'			
 	};
 
 	try {
 		const result = await dynamoDbLib.call("update", params);
-		
-		callback(null, success({ status: true }));
-	} catch (e) {
+		console.log("Edit succesfull on project table"+result);
+		//Update userTable with projectId for respective Users
+		console.log(result.Attributes.projectOwner+"smdbsmnd"+data.projectOwner);
+		if(result.Attributes.projectOwner!==data.projectOwner) {		
+		try {
+		console.log("entered try");
+		const deleteResult = await dynamoDbLib.call("update", createTableParams(result.Attributes.projectOwner,event.pathParameters.id,"delete"));
+		console.log(deleteResult);
+		const createResult = await dynamoDbLib.call("update", createTableParams(data.projectOwner,event.pathParameters.id,"create"));
+		console.log(createResult);
+		var taskUpdateResult = await fetcTaskDetailsAndUpdate(result.Attributes.projectOwner,data.projectOwner,event.pathParameters.id);
+		} catch (e) {
 		console.log(e)
-		callback(null, failure({ status: false }));
+		callback(null, failure({ status: false ,error:"Failed to update project owner data in user/tasks table"}));
+		}
+		}		
+		console.log("editing contribtors in user table");
+		var fetchUserProjectIdParams;
+		if(data.projectContributors){
+		fetchUserProjectIdParams = {
+		TableName: process.env.userstableName,
+		FilterExpression: 'contains (projectId, :projectId)',
+		ExpressionAttributeValues: {
+			":projectId" : event.pathParameters.id
+		}
+		};
+		try {	
+			console.log("kjashxkjHX"+ JSON.stringify(fetchUserProjectIdParams));
+		var userData = await dynamoDb.scan(fetchUserProjectIdParams).promise();
+		console.log(userData);
+		var deleteContributorResult;
+				for(var i=0;i<userData.Count;i++){				
+				if(userData.Items[i].userId==data.projectOwner) { continue; }
+				else if(userData.Items[i].userId!==data.projectOwner) {
+				console.log("mhsgdmn"+JSON.stringify(createTableParams(userData.Items[i].userId,event.pathParameters.id,"delete")));
+				deleteContributorResult = await dynamoDbLib.call("update",createTableParams(userData.Items[i].userId,event.pathParameters.id,"delete"));
+				}}
+				
+				
+		const iterator = data.projectContributors.entries();
+		var createContributorResult;
+		var taskResult;
+		for (let contributorId of iterator) {
+			console.log(contributorId[1]);
+			createContributorResult = await dynamoDbLib.call("update", createTableParams(contributorId[1],event.pathParameters.id,"create"));	
+			taskResult = fetcTaskDetailsAndUpdate(result.Attributes.projectOwner,data.projectOwner,event.pathParameters.id,"contributor");
+			}
+		 
+			
+	} catch (e) {
+		console.log(e);
+		callback(null, failure({ status: false , error: "Failed to update contributors data in the user table?tasks table" }));
+	}
+					
+	callback(null, success({ status: true }));
+	}
+	}catch (e) {
+		console.log(e)
+		callback(null, failure({ status: false , error: "Failed to update user table" }));
 	}
 }
