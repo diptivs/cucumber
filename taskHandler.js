@@ -184,13 +184,13 @@ export async function updateTaskPriority(event, context, callback) {
 		console.log(params);
 		const result = await dynamoDbLib.call("update", params);
 		console.log(result);
-		callback(null, success(result));
+		
 	} catch (e) {
 		console.log(e)
 		callback(null, failure({ status: false }));
 	}
 }
-
+callback(null, success({status: true}));
 }
 
 
@@ -200,28 +200,29 @@ export async function updateTaskPriority(event, context, callback) {
 export async function update(event, context, callback) {
 	const data = JSON.parse(event.body);
 	var params;
-	if(data.taskPomodoroEndTime) {
+	if(data.taskPomodoroEndTime && data.taskStatus) {	
 		params = {
 		TableName: process.env.taskstableName,
 		Key: {
 			taskId: event.pathParameters.id
 		},
-		UpdateExpression: "SET taskPomodoroEndTime = :taskPomodoroEndTime",
+		UpdateExpression: "SET taskPomodoroEndTime = :taskPomodoroEndTime,taskStatus = :taskStatus",		
 		ExpressionAttributeValues: {
-				":taskPomodoroEndTime": data.taskPomodoroEndTime
+				":taskPomodoroEndTime": data.taskPomodoroEndTime,
+				":taskStatus" : data.taskStatus
 		}
-	};
-	} else if(data.taskPomodoroStartTime) {
+	};	
+	} else if(data.taskPomodoroStartTime && data.taskStatus) {
 		params = {
 		TableName: process.env.taskstableName,
 		Key: {
 			taskId: event.pathParameters.id
 		},
-		UpdateExpression: "SET taskPomodoroStartTime = :taskPomodoroStartTime",
+		UpdateExpression: "SET taskPomodoroStartTime = :taskPomodoroStartTime,taskStatus = :taskStatus",
 		ExpressionAttributeValues: {
-				":taskPomodoroStartTime": data.taskPomodoroStartTime
-
-			},
+				":taskPomodoroStartTime": data.taskPomodoroStartTime,
+				":taskStatus" : data.taskStatus
+				},
 	};
 	} else if(data.userId && data.taskName && data.taskDescription && data.taskStatus && data.taskPomodoroCount && data.taskPriority) {
 		params = {
