@@ -15,7 +15,7 @@ export async function create(event, context, callback) {
 			pomodoroSize: data.prefPomodoroSize,
 			shortBreakSize: data.prefShortBreakSize,
 			longBreakSize: data.prefLongBreakSize,
-			workSchedule: data.prefWorkDay,												
+			workSchedule: data.prefWorkDay,
 		}
 	};
 	try {
@@ -68,6 +68,12 @@ export async function retrieve(event, context, callback) {
 
 //Retrieves the user preference based on the user specified
 export async function retrieveUserPreference(event, context, callback) {
+    var userId;
+    if(event.queryStringParameters.userId){
+        userId = event.queryStringParameters.userId;
+    } else {
+        userId = event.requestContext.identity.cognitoIdentityId;
+    }
 	const dynamoDb = new AWS.DynamoDB.DocumentClient();
 	const params = {
 		TableName: process.env.preferncestableName,
@@ -76,7 +82,7 @@ export async function retrieveUserPreference(event, context, callback) {
 		'#userId': 'userId',
 		},
 		ExpressionAttributeValues: {
-        ':userId': event.requestContext.identity.cognitoIdentityId,
+        ':userId': userId,
 		},
 	};
 	try {
@@ -91,7 +97,7 @@ export async function retrieveUserPreference(event, context, callback) {
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
-}
+    }
 }
 
 //Deletes preference based on the id specified
@@ -107,7 +113,7 @@ export async function deletePreference(event, context, callback) {
 
 	try {
 		const result = await dynamoDbLib.call("delete", params);
-		if(result.Attributes) {		
+		if(result.Attributes) {
 		callback(null, success({ status: true }));
 		} else {
 			callback(null, failure({ status: false , error: "Unable to delete" }));

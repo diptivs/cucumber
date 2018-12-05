@@ -34,6 +34,7 @@ provider:
     preferncestableName: ${self:custom.preferncestableName}
     scheduletableName: ${self:custom.scheduletableName}
     stage: ${opt:stage, self:provider.stage}
+    TZ: America/Los_Angeles
 
   iamRoleStatements:
     - Effect: Allow
