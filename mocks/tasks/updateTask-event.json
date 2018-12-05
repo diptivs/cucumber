@@ -1,5 +1,5 @@
 {
- "body": "{\"taskName\":\"Implementation2\", \"taskDescription\":\"Testing12\", \"taskStatus\":\"assigned\",\"taskPomodoroCount\":\"4\",\"userId\":\"DemoUserDev\",\"taskPriority\":8}", 
+ "body": "{\"taskName\":\"Implementation2\", \"taskDescription\":\"Testing12\", \"taskStatus\":\"Completed\",\"taskPomodoroCount\":\"4\",\"taskPriority\":8,\"taskPomodoroEndTime\":\"3\"}", 
 "pathParameters": {
 "id": "5b5eb240-f1fe-11e8-bbd8-679bc5d4159e"
 }
