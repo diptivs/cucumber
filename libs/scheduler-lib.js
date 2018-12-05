@@ -454,7 +454,7 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
                 end: end_time.toISOString(),
                 taskId: task.taskId,
                 type: 'task',
-                projectId: task.ProjectId
+                projectId: task.projectId
             });
             start_time = date.addMinutes(end_time, 0);
             if (taskCount<3) {
