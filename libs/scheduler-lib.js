@@ -1,6 +1,7 @@
 import uuid from "uuid";
 import AWS from "aws-sdk";
 import date from "date-and-time";
+import moment from "moment-timezone";
 import config from "../config";
 import * as dynamoDbLib from "./dynamodb-lib";
 
@@ -204,6 +205,41 @@ function getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, free
 }
 
 /**
+ * function to increment task's pomodoro counter
+ * @param taskId - task ID
+ */
+async function incrPomodoroCount(taskId) {
+    console.log('calling increment');
+    const lambda = new AWS.Lambda(),
+          getParams = {
+            FunctionName: lambdaName + "-retrieveTask",
+            Payload: JSON.stringify({
+                "pathParameters": { "id": taskId }
+            })
+          },
+          postParams = {
+            FunctionName: lambdaName + "-updateTask",
+          };
+    try {
+        const resp = await getLambda(lambda, getParams),
+              payload = JSON.parse(resp.Payload);
+        if (payload.body) {
+            var task = JSON.parse(payload.body);
+            task.taskPomodoroCount++;
+            console.log("Incremented", task);
+            postParams.Payload = JSON.stringify({
+                "body": JSON.stringify(task),
+                "pathParameters": { "id": taskId }
+            });
+            await getLambda(lambda, postParams);
+        }
+
+    } catch (e) {
+        console.log("Error while incrementing", e);
+    }
+}
+
+/**
  * Function that gets specified number of top tasks within the project
  * @param projectId - id of project
  * @param numTasks - number of tasks to return for the project
@@ -348,22 +384,33 @@ function getFreeTime(userConfig, startDateStr, endDateStr) {
                      lunch: { start: { h: 12, m: 0 },
                               end: { h: 13, m: 0 } },
                       end: { h: 18, m: 0 } },
+        currentTime = null,
         timeSlots = [],
         dates = [],
         startDate, endDate;
 
-    if (startDateStr == null) startDate = new Date();
-    else startDate = new Date(startDateStr);
+    if (startDateStr == null) {
+        startDate = new Date();
+    } else {
+        startDate = new Date(startDateStr);
+        currentTime = { h: startDate.getHours(), m: startDate.getMinutes() };
+    }
     if (endDateStr == null) endDate = new Date();
     else endDate = new Date(endDateStr);
+
+    if (startDate.getHours() > schedule.end.h || startDate.getHours()==0) startDate = date.addDays(startDate, 1);
 
     if (userConfig.workSchedule!=undefined) schedule = userConfig.workSchedule;
     dates = getDates(startDate, endDate);
 
-    dates.forEach(function(d){
-        var tslot = null;
+    dates.forEach(function(d, i){
+        var tslot = null, start = schedule.start;
+        if (i==0 && currentTime && currentTime.h > schedule.start.h && currentTime.h < schedule.end.h){
+            start = currentTime;
+        }
+
         if (schedule.lunch!=undefined) {
-            tslot = getTimeSlot(d, schedule.start, schedule.lunch.start);
+            tslot = getTimeSlot(d, start, schedule.lunch.start);
             tslot.type = "free";
             timeSlots.push(tslot);
             tslot = getTimeSlot(d, schedule.lunch.start, schedule.lunch.end);
@@ -374,7 +421,7 @@ function getFreeTime(userConfig, startDateStr, endDateStr) {
             tslot.type = "free";
             timeSlots.push(tslot);
         } else {
-            tslot = getTimeSlot(d, schedule.start, schedule.endDateStr);
+            tslot = getTimeSlot(d, start, schedule.endDateStr);
             tslot.type = "free";
             timeSlots.push(tslot);
         }
@@ -439,6 +486,8 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         tasks = tasks.slice(timeslot.count);
 
         if (timeslot.type !== 'free') {
+            if (timeslot.type=="lunch") taskCount = 0;
+
             timeslot.start = timeslot.start.toISOString();
             timeslot.end = timeslot.end.toISOString();
             schedule.push(timeslot);
@@ -520,25 +569,32 @@ function flattenSchedule(schedule, prefix=null) {
  * @param taskId - id of the task to snooze
  * @return schedule
  */
-async function snoozeTask(userId, prefrences, taskId) {
-    const today = date.format(new Date(), 'YYYY-MM-DD'),
-          tomorrow = date.format( date.addDays(new Date(), 1), 'YYYY-MM-DD'),
+async function snoozeTask(userId, preferences, taskId) {
+    console.log("In snooze")
+    const today = moment(new Date()).tz("America/Los_Angeles").format('YYYY-MM-DD'),
+          tomorrow = moment( date.addDays(new Date(), 1) ).tz("America/Los_Angeles").format('YYYY-MM-DD'),
           scheduleToday = await getScheduleRangeFromDB(userId, today, today),
           scheduleRest = await getScheduleRangeFromDB(userId, tomorrow);
 
-    var schedSlicePast, schedSliceFuture,
+    console.log("DAY", today, tomorrow);
+    var schedSlicePast, schedSliceFuture, endtime,
         snoozedTask = { taskId: taskId, type: 'task' },
         schedSplitIndex = null,
         nextTask = null,
+        taskCount = 0,
         useNextTask = false; // flag to indicate that the timeslot of next task should be used
 
+    scheduleToday.Items.sort(taskCompare);
+    scheduleRest.Items.sort(taskCompare);
     for(var i=0; i<scheduleToday.Items[0].schedule.length; i++){
-        item = scheduleToday.Items[0].schedule[i];
+        var item = scheduleToday.Items[0].schedule[i];
         if (item.type=='task') {
+            if (taskCount>3) taskCount=0;
+            taskCount++;
+
             if (item.taskId==taskId) {
                 useNextTask = true;
-                snoozedTask.title = item.title;
-                snoozedTask.desc = item.desc;
+                snoozedTask = JSON.parse(JSON.stringify(item));
             } else if (useNextTask==true) {
                 nextTask = item;
                 schedSplitIndex = i;
@@ -547,9 +603,13 @@ async function snoozeTask(userId, prefrences, taskId) {
         }
     }
 
+    // If snoozed task is last in the day
     if (!nextTask) {
         for (var i=0; i<scheduleRest.Items[0].schedule.length; i++) {
-            item = scheduleRest.Items[0].schedule[i];
+            var item = scheduleRest.Items[0].schedule[i];
+            if (taskCount>3) taskCount=0;
+            taskCount++;
+
             if (item.type=='task') {
                 schedSplitIndex = i;
                 nextTask = item;
@@ -565,42 +625,76 @@ async function snoozeTask(userId, prefrences, taskId) {
         schedSliceFuture = scheduleToday.Items[0].schedule.slice(schedSplitIndex);
     }
 
-    snoozedTask.start = nextTask.start;
-    snoozedTask.end = endTask.end;
 
-    var endtime=snoozedTask.end,
-        schedule = flattenSchedule(scheduleRest, schedSliceFuture);
+    // if even tomorrow there are no tasks
+    if (!nextTask) {
+        schedSlicePast = scheduleToday.Items[0].schedule;
+        var schedule = flattenSchedule(scheduleRest);
+        schedule.unshift(snoozedTask)
+    } else {
+        var schedule = flattenSchedule(scheduleRest, schedSliceFuture);
+        snoozedTask.start = nextTask.start;
+        snoozedTask.end = nextTask.end;
+    }
+    taskCount++;
 
+    console.log(taskCount);
+    if (taskCount < 3) {
+        console.log( "short");
+        endtime = date.addMinutes(new Date(snoozedTask.end), preferences.shortBreakSize);
+    } else {
+        console.log("long");
+        endtime = date.addMinutes(new Date(snoozedTask.end), preferences.longBreakSize);
+        taskCount = 0;
+    }
 
     schedule.forEach(function(item, i){
-        if (item.type!='task' && schedule.length>(i+1) && schedule[i+1].type=='task') {
-            endtime = item.end;
-        } else if (item.type=='task') {
-            var length = date.subtract(new Date(item.end), new Date(item.end)).toMinutes(),
-                newStart = new Date(endtime),
+        if (item.type!='task') {
+            if ( new Date(endtime) < new Date(item.end) ) endtime = item.end;
+            taskCount = 0;
+        } else {
+            taskCount++;
+            var tmptime = new Date(endtime),
+                length = date.subtract(new Date(item.end), new Date(item.start)).toMinutes();
+
+            if (schedule.length > i + 1 && schedule[i + 1].type != 'task') {
+                if (date.addMinutes(tmptime, length) > new Date(schedule[i + 1].start))
+                    endtime = new Date(schedule[i + 1].end);
+            }
+
+            var newStart = new Date(endtime),
                 newEnd = date.addMinutes(newStart, length),
                 workdayEnd = new Date(endtime);
             workdayEnd.setHours(preferences.workSchedule.end.h, preferences.workSchedule.end.m);
 
             if ( newEnd <=workdayEnd )  {
-                item.start = newStart;
+                item.start = newStart.toISOString();
             } else {
-                for (n=i+1; n<schedule.length; n++) {
+                taskCount = 0;
+                for (var n=i+1; n<schedule.length; n++) {
                     if (schedule[n].type=='task') {
-                        item.start = new Date(schedule[n].start);
+                         item.start = new Date(schedule[n].start);
+                        item.start = item.start.toISOString();
                         newEnd = new Date(schedule[n].end);
                         break;
                     }
                 }
             }
-            item.end = newEnd;
-            endtime = newEnd;
+            item.end = newEnd.toISOString();
+            if (taskCount < 3) {
+                endtime = date.addMinutes(newEnd, preferences.shortBreakSize);
+            } else {
+                endtime = date.addMinutes(newEnd, preferences.longBreakSize);
+            }
         }
     });
 
-    schedule.unshift(snoozedTask);
+    // prepend snooze task if there are other tasks after
+    if (nextTask) schedule.unshift(snoozedTask);
     schedule = schedSlicePast.concat(schedule);
-    pushScheduleToDb(userId, schedule, true);
+    pushScheduleToDb(userId, schedule);
+    console.log("Pushed to db")
+    incrPomodoroCount(taskId);
     return schedule;
 }
 
@@ -702,9 +796,11 @@ async function swapTasks(userId, resched) {
  *
  */
 export async function getSchedule(userId, startDateStr, endDateStr, create=false) {
-    var response = { Items: [] };
+    var response = { Items: [] },
+        startDate = date.format(new Date(startDateStr), 'YYYY-MM-DD'),
+        endDate = date.format(new Date(endDateStr), 'YYYY-MM-DD');
     try {
-        const schedule = await getScheduleRangeFromDB(userId, startDateStr, endDateStr);
+        const schedule = await getScheduleRangeFromDB(userId, startDate, endDate);
         if (schedule && schedule.Items.length && !create) {
             response.Items = flattenSchedule(schedule);
         } else {
@@ -730,16 +826,17 @@ export async function getSchedule(userId, startDateStr, endDateStr, create=false
 export async function reSchedule(userId, data)
 {
     console.log("Enter reSchedule function");
+    console.log("ARGS", userId, data);
     var preferences = await getPreferences(userId),
-        schedule = [];
+        response = { Items: [] };
 
     if (data.snooze) {
-        schedule = await snoozeTask(userId, preferences, data.snooze);
+        response.Items = await snoozeTask(userId, preferences, data.snooze);
     } else if (data.skip) {
-        schedule = await skipTask(userId, data.skip);
+        response.Items = await skipTask(userId, data.skip);
     } else if (data.reschedule) {
-        schedule = await swapTasks(userId, data.reschedule)
+        response.Items = await swapTasks(userId, data.reschedule)
     }
 
-    return schedule;
+    return response;
 }
