@@ -414,11 +414,13 @@ function getFreeTime(userConfig, startDateStr, endDateStr) {
         }
 
         if (schedule.lunch!=undefined) {
-            if (start.h < schedule.lunch.start.h ||
-                (start.h==schedule.lunch.start.h && start.m<schedule.lunch.start.m)) {
-                tslot = getTimeSlot(d, start, schedule.lunch.start);
+            tslot = getTimeSlot(d, start, schedule.lunch.start);
+            var lunchslot = getTimeSlot(d, schedule.lunch.start, schedule.lunch.end);
+            if (tslot.start < lunchslot.start) {
                 tslot.type = "free";
                 timeSlots.push(tslot);
+                start = schedule.lunch.end;
+            } else if (tslot.start < lunchslot.end) {
                 start = schedule.lunch.end;
             }
             tslot = getTimeSlot(d, schedule.lunch.start, schedule.lunch.end);
