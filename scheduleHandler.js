@@ -39,10 +39,12 @@ export async function getSchedule(event, context, callback) {
 //create/update schedule
 //input: POST with Request Body: { taskID:<>, taskType: N (new) / S (snooze) / C (calender)}
 export async function reSchedule(event, context, callback) {
+	    const data = JSON.parse(event.body);
         try {
-                await schedulerLib.reSchedule(event.requestContext.identity.cognitoIdentityId,event.body);
+                const schedule = await schedulerLib.reSchedule(event.requestContext.identity.cognitoIdentityId, data);
                 console.log("reSchedule API success");
-                callback(null, success({ status: true }));
+                console.log('Response:', schedule);
+                callback(null, success(schedule));
         } catch (e) {
                 console.log(e);
                 callback(null, failure({ status: false }));
