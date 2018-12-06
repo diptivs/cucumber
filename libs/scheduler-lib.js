@@ -205,6 +205,41 @@ function getNumOfPomodoroSlots(pomodoroSize, shortBreakSize, longBreakSize, free
 }
 
 /**
+ * function to increment task's pomodoro counter
+ * @param taskId - task ID
+ */
+async function incrPomodoroCount(taskId) {
+    console.log('calling increment');
+    const lambda = new AWS.Lambda(),
+          getParams = {
+            FunctionName: lambdaName + "-retrieveTask",
+            Payload: JSON.stringify({
+                "pathParameters": { "id": taskId }
+            })
+          },
+          postParams = {
+            FunctionName: lambdaName + "-updateTask",
+          };
+    try {
+        const resp = await getLambda(lambda, getParams),
+              payload = JSON.parse(resp.Payload);
+        if (payload.body) {
+            var task = JSON.parse(payload.body);
+            task.taskPomodoroCount++;
+            console.log("Incremented", task);
+            postParams.Payload = JSON.stringify({
+                "body": JSON.stringify(task),
+                "pathParameters": { "id": taskId }
+            });
+            await getLambda(lambda, postParams);
+        }
+
+    } catch (e) {
+        console.log("Error while incrementing", e);
+    }
+}
+
+/**
  * Function that gets specified number of top tasks within the project
  * @param projectId - id of project
  * @param numTasks - number of tasks to return for the project
@@ -659,6 +694,7 @@ async function snoozeTask(userId, preferences, taskId) {
     schedule = schedSlicePast.concat(schedule);
     pushScheduleToDb(userId, schedule);
     console.log("Pushed to db")
+    incrPomodoroCount(taskId);
     return schedule;
 }
 
