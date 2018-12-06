@@ -349,22 +349,33 @@ function getFreeTime(userConfig, startDateStr, endDateStr) {
                      lunch: { start: { h: 12, m: 0 },
                               end: { h: 13, m: 0 } },
                       end: { h: 18, m: 0 } },
+        currentTime = null,
         timeSlots = [],
         dates = [],
         startDate, endDate;
 
-    if (startDateStr == null) startDate = new Date();
-    else startDate = new Date(startDateStr);
+    if (startDateStr == null) {
+        startDate = new Date();
+    } else {
+        startDate = new Date(startDateStr);
+        currentTime = { h: startDate.getHours(), m: startDate.getMinutes() };
+    }
     if (endDateStr == null) endDate = new Date();
     else endDate = new Date(endDateStr);
+
+    if (startDate.getHours() > schedule.end.h || startDate.getHours()==0) startDate = date.addDays(startDate, 1);
 
     if (userConfig.workSchedule!=undefined) schedule = userConfig.workSchedule;
     dates = getDates(startDate, endDate);
 
-    dates.forEach(function(d){
-        var tslot = null;
+    dates.forEach(function(d, i){
+        var tslot = null, start = schedule.start;
+        if (i==0 && currentTime && currentTime.h > schedule.start.h && currentTime.h < schedule.end.h){
+            start = currentTime;
+        }
+
         if (schedule.lunch!=undefined) {
-            tslot = getTimeSlot(d, schedule.start, schedule.lunch.start);
+            tslot = getTimeSlot(d, start, schedule.lunch.start);
             tslot.type = "free";
             timeSlots.push(tslot);
             tslot = getTimeSlot(d, schedule.lunch.start, schedule.lunch.end);
@@ -375,7 +386,7 @@ function getFreeTime(userConfig, startDateStr, endDateStr) {
             tslot.type = "free";
             timeSlots.push(tslot);
         } else {
-            tslot = getTimeSlot(d, schedule.start, schedule.endDateStr);
+            tslot = getTimeSlot(d, start, schedule.endDateStr);
             tslot.type = "free";
             timeSlots.push(tslot);
         }
@@ -749,12 +760,11 @@ async function swapTasks(userId, resched) {
  *
  */
 export async function getSchedule(userId, startDateStr, endDateStr, create=false) {
-    var response = { Items: [] };
-
-    startDateStr = date.format(new Date(startDateStr), 'YYYY-MM-DD');
-    endDateStr = date.format(new Date(endDateStr), 'YYYY-MM-DD');
+    var response = { Items: [] },
+        startDate = date.format(new Date(startDateStr), 'YYYY-MM-DD'),
+        endDate = date.format(new Date(endDateStr), 'YYYY-MM-DD');
     try {
-        const schedule = await getScheduleRangeFromDB(userId, startDateStr, endDateStr);
+        const schedule = await getScheduleRangeFromDB(userId, startDate, endDate);
         if (schedule && schedule.Items.length && !create) {
             response.Items = flattenSchedule(schedule);
         } else {
