@@ -405,7 +405,11 @@ function getFreeTime(userConfig, startDateStr, endDateStr) {
 
     dates.forEach(function(d, i){
         var tslot = null, start = schedule.start;
-        if (i==0 && currentTime && currentTime.h > schedule.start.h && currentTime.h < schedule.end.h){
+        if (i==0 && currentTime &&
+            ( currentTime.h>schedule.start.h ||
+              ( currentTime.h==schedule.start.h &&
+                currentTime.m>schedule.start.m )) &&
+            currentTime.h < schedule.end.h){
             start = currentTime;
         }
 
