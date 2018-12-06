@@ -414,14 +414,18 @@ function getFreeTime(userConfig, startDateStr, endDateStr) {
         }
 
         if (schedule.lunch!=undefined) {
-            tslot = getTimeSlot(d, start, schedule.lunch.start);
-            tslot.type = "free";
-            timeSlots.push(tslot);
+            if (start.h < schedule.lunch.start.h ||
+                (start.h==schedule.lunch.start.h && start.m<schedule.lunch.start.m)) {
+                tslot = getTimeSlot(d, start, schedule.lunch.start);
+                tslot.type = "free";
+                timeSlots.push(tslot);
+                start = schedule.lunch.end;
+            }
             tslot = getTimeSlot(d, schedule.lunch.start, schedule.lunch.end);
             tslot.type = "lunch";
             tslot.title = "Lunch";
             timeSlots.push(tslot);
-            tslot = getTimeSlot(d, schedule.lunch.end, schedule.end);
+            tslot = getTimeSlot(d, start, schedule.end);
             tslot.type = "free";
             timeSlots.push(tslot);
         } else {
@@ -476,7 +480,8 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         projects = await getProjects(userId),
         schedule = [],
         tasks = [],
-        taskCount = 0;
+        taskCount = 0,
+        startDateObj = new Date(startDateStr);
 
     for (const project of projects) {
         var numOfTasks = Math.round(project.weight/100*availPomodoros.total);
@@ -488,6 +493,10 @@ async function createSchedule(userId, startDateStr=null, endDateStr=null) {
         var start_time = timeslot.start,
             tasksForSlot = tasks.slice(0, timeslot.count);
         tasks = tasks.slice(timeslot.count);
+
+        if( n==0 && startDateObj > start_time ) {
+            start_time = startDateObj;
+        }
 
         if (timeslot.type !== 'free') {
             if (timeslot.type=="lunch") taskCount = 0;
