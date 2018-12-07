@@ -64,7 +64,7 @@ export async function deleteTask(event, context, callback) {
 		const result = await dynamoDbLib.call("delete", params);
 		console.log(result.Attributes);
 		//Logic to delete task from userTable
-		if(result.Attributes) {			
+		if(result.Attributes) {
 		const userParams = {
 		TableName: process.env.userstableName,
 		Key: {
@@ -74,7 +74,7 @@ export async function deleteTask(event, context, callback) {
 		ExpressionAttributeValues: {
 			':taskId': docClient.createSet([result.Attributes.taskId])
 			},
-			ReturnValues: 'UPDATED_NEW'		
+			ReturnValues: 'UPDATED_NEW'
 		};
 		try {
 			const updatedResult = await dynamoDbLib.call("update", userParams);
@@ -85,7 +85,7 @@ export async function deleteTask(event, context, callback) {
 			console.log("entered catch" + e);
 			callback(null, failure({ status: false, error: "Task update on user failed." }));
 		}
-	}	
+	}
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
@@ -174,17 +174,17 @@ export async function updateTaskPriority(event, context, callback) {
 		Key: {
 			taskId: data.tasks[i].taskId
 		},
-		UpdateExpression: "SET taskPriority = :taskPriority",		
+		UpdateExpression: "SET taskPriority = :taskPriority",
 		ExpressionAttributeValues: {
-				":taskPriority": data.tasks[i].taskPriority				
+				":taskPriority": data.tasks[i].taskPriority
 		},
 		ReturnValues: 'UPDATED_NEW'
-	};		
+	};
 	try {
 		console.log(params);
 		const result = await dynamoDbLib.call("update", params);
 		console.log(result);
-		
+
 	} catch (e) {
 		console.log(e)
 		callback(null, failure({ status: false }));
@@ -194,90 +194,70 @@ callback(null, success({status: true}));
 }
 
 
-	
+
 
 //Updates task info
 export async function update(event, context, callback) {
 	const data = JSON.parse(event.body);
-	var params;
-	if(data.taskPomodoroEndTime && data.taskStatus) {	
-		params = {
-		TableName: process.env.taskstableName,
-		Key: {
-			taskId: event.pathParameters.id
-		},
-		UpdateExpression: "SET taskPomodoroEndTime = :taskPomodoroEndTime,taskStatus = :taskStatus",		
-		ExpressionAttributeValues: {
-				":taskPomodoroEndTime": data.taskPomodoroEndTime,
-				":taskStatus" : data.taskStatus
-		}
-	};	
-	} else if(data.taskPomodoroStartTime && data.taskStatus) {
-		params = {
-		TableName: process.env.taskstableName,
-		Key: {
-			taskId: event.pathParameters.id
-		},
-		UpdateExpression: "SET taskPomodoroStartTime = :taskPomodoroStartTime,taskStatus = :taskStatus",
-		ExpressionAttributeValues: {
-				":taskPomodoroStartTime": data.taskPomodoroStartTime,
-				":taskStatus" : data.taskStatus
-				},
-	};
-	} else if(data.userId && data.taskName && data.taskDescription && data.taskStatus && data.taskPomodoroCount && data.taskPriority) {
-		params = {
-		TableName: process.env.taskstableName,
-		Key: {
-			taskId: event.pathParameters.id
-		},
-		UpdateExpression: "SET userId = :userId, taskName = :taskName, taskDescription = :taskDescription, taskStatus = :taskStatus, taskPomodoroCount = :taskPomodoroCount, taskPriority = :taskPriority",
-		ExpressionAttributeValues: {
-				":userId": data.userId,
-				":taskName": data.taskName,
-				":taskDescription": data.taskDescription,
-				":taskStatus": data.taskStatus,
-				":taskPomodoroCount": data.taskPomodoroCount,
-				":taskPriority": data.taskPriority
-			},
-			ReturnValues: 'UPDATED_OLD'
-	};
-	}
+    const validProperties = ["projectId", "taskPomodoroStartTime",
+                             "taskDescription", "taskId", "taskPomodoroCount",
+                             "taskStatus", "userId", "taskPomodoroEndTime",
+                             "taskName", "taskPriority"];
+	var params = {
+		    TableName: process.env.taskstableName,
+            Key: {
+                taskId: event.pathParameters.id
+            },
+            UpdateExpression: null,
+            ExpressionAttributeValues: {}
+        };
 
+    for(var prop in data) {
+        if (prop=="taskId" || !validProperties.includes(prop)) continue;
+
+        if (!params.UpdateExpression) {
+            params.UpdateExpression = `SET ${prop} = :${prop}`;
+        } else {
+            params.UpdateExpression += `, ${prop} = :${prop}`;
+        }
+        params.ExpressionAttributeValues[`:${prop}`] = data[prop];
+    }
+
+    console.log(params);
 	try {
 		const result = await dynamoDbLib.call("update", params);
-		console.log(result);
 		//Update userTable with taskId for respective Users
 		if(data.userId){
-		const docClient = new AWS.DynamoDB.DocumentClient();	
-		const deleteTaskparams = {
-		TableName: process.env.userstableName,
-		Key: {
-			userId: result.Attributes.userId
-		},
-		UpdateExpression: "DELETE taskId :taskId",
-		ExpressionAttributeValues: {
-				":taskId": docClient.createSet(event.pathParameters.id)				
-			},
-		};
-		const createTaskparams = {
-		TableName: process.env.userstableName,
-		Key: {
-			userId: data.userId
-		},
-		UpdateExpression: "ADD taskId :taskId",
-		ExpressionAttributeValues: {
-				":taskId": docClient.createSet(event.pathParameters.id)				
-			},
-		};
-		try {
-		const deleteResult = await dynamoDbLib.call("update", deleteTaskparams);
-		const createResult = await dynamoDbLib.call("update", createTaskparams);
-		callback(null, success({ status: true }));
-		} catch (e) {
-		console.log(e)
-		callback(null, failure({ status: false ,error:"Failed to update user table"}));
+		    const docClient = new AWS.DynamoDB.DocumentClient();
+		    const deleteTaskparams = {
+		        TableName: process.env.userstableName,
+                Key: {
+                    userId: data.userId
+                },
+                UpdateExpression: "DELETE taskId :taskId",
+                ExpressionAttributeValues: {
+				    ":taskId": docClient.createSet(event.pathParameters.id)
+			    },
+		    };
+		    const createTaskparams = {
+                TableName: process.env.userstableName,
+                Key: {
+                    userId: data.userId
+                },
+                UpdateExpression: "ADD taskId :taskId",
+                ExpressionAttributeValues: {
+                    ":taskId": docClient.createSet(event.pathParameters.id)
+                },
+            };
+            try {
+                const deleteResult = await dynamoDbLib.call("update", deleteTaskparams);
+                const createResult = await dynamoDbLib.call("update", createTaskparams);
+                callback(null, success({ status: true }));
+            } catch (e) {
+                console.log(e)
+                callback(null, failure({ status: false ,error:"Failed to update user table"}));
+            }
 		}
-		}			
 		callback(null, success({ status: true }));
 	} catch (e) {
 		console.log(e)
