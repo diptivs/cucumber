@@ -714,8 +714,8 @@ async function snoozeTask(userId, preferences, taskId) {
 }
 
 async function skipTask(userId, taskId) {
-    const today = date.format(new Date(), 'YYYY-MM-DD'),
-          tomorrow = date.format( date.addDays(new Date(), 1), 'YYYY-MM-DD'),
+    const today = moment(new Date()).tz("America/Los_Angeles").format('YYYY-MM-DD'),
+          tomorrow = moment( date.addDays(new Date(), 1) ).tz("America/Los_Angeles").format('YYYY-MM-DD'),
           scheduleToday = await getScheduleRangeFromDB(userId, today, today),
           scheduleRest = await getScheduleRangeFromDB(userId, tomorrow);
 
@@ -744,15 +744,17 @@ async function skipTask(userId, taskId) {
     for (var i=0; i<schedule.length; i++) {
         var item = schedule[i];
         if (item.type=='task') {
+            console.log(item.title);
             var newStart = new Date(start),
                 newEnd = new Date(end),
 
             start = item.start;
             end = item.end;
-            item.start = newStart;
-            item.end = newEnd;
+            item.start = newStart.toISOString();
+            item.end = newEnd.toISOString();
 
             if (item.projectId != skippedTask.projectId) {
+                console.log("Skipped");
                 skippedTask.start = start;
                 skippedTask.end = end;
                 break;
@@ -763,7 +765,7 @@ async function skipTask(userId, taskId) {
     schedule.unshift(skippedTask);
     schedule = schedSlicePast.concat(schedule);
     schedule.sort(taskCompare);
-    pushScheduleToDb(userId, schedule, true);
+    pushScheduleToDb(userId, schedule);
     return schedule;
 
 }
