@@ -719,7 +719,7 @@ async function skipTask(userId, taskId) {
           scheduleToday = await getScheduleRangeFromDB(userId, today, today),
           scheduleRest = await getScheduleRangeFromDB(userId, tomorrow);
 
-    var skippedTask = null;
+    var skippedTask = null,
         schedSplitIndex = null,
         useNextTask = false; // flag to indicate that the timeslot of next task should be used
 
@@ -737,7 +737,7 @@ async function skipTask(userId, taskId) {
 
     var schedSlicePast = scheduleToday.Items[0].schedule.slice(0, schedSplitIndex),
         schedSliceFuture = scheduleToday.Items[0].schedule.slice(schedSplitIndex+1),
-        start=skippedTask.start
+        start=skippedTask.start,
         end=skippedTask.end,
         schedule = flattenSchedule(scheduleRest, schedSliceFuture);
 
