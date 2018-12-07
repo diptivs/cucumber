@@ -12,10 +12,10 @@ export async function create(event, context, callback) {
 		Item: {
 			preferenceId: uuid.v1(),
 			userId: event.requestContext.identity.cognitoIdentityId,
-			pomodoroSize: data.prefPomodoroSize,
-			shortBreakSize: data.prefShortBreakSize,
-			longBreakSize: data.prefLongBreakSize,
-			workSchedule: data.prefWorkDay,
+			pomodoroSize: data.pomodoroSize,
+			shortBreakSize: data.shortBreakSize,
+			longBreakSize: data.longBreakSize,
+			workSchedule: data.workSchedule,
 		}
 	};
 	try {
@@ -69,12 +69,12 @@ export async function retrieve(event, context, callback) {
 //Retrieves the user preference based on the user specified
 export async function retrieveUserPreference(event, context, callback) {
     var userId;
-    if(event.queryStringParameters.userId){
+    if(event.queryStringParameters && event.queryStringParameters.userId){
         userId = event.queryStringParameters.userId;
     } else {
         userId = event.requestContext.identity.cognitoIdentityId;
     }
-	const dynamoDb = new AWS.DynamoDB.DocumentClient();
+    const dynamoDb = new AWS.DynamoDB.DocumentClient();
 	const params = {
 		TableName: process.env.preferncestableName,
 		FilterExpression: '#userId = :userId',
@@ -86,14 +86,13 @@ export async function retrieveUserPreference(event, context, callback) {
 		},
 	};
 	try {
-		dynamoDb.scan(params, function(err,data){
-			if(err){
-				callback(err,null);
-			}else{
-				console.log(data);
-				callback(null, success(data));
-			}
-		});
+        const scanResult = await dynamoDb.scan(params).promise();
+		if(scanResult){
+			console.log(scanResult.Items);
+			callback(null, success(scanResult));
+        }else{
+            callback(err,failure({ status: false , error: "Preferences not found" }));
+        }
 	} catch (e) {
 		console.log(e);
 		callback(null, failure({ status: false }));
@@ -127,18 +126,19 @@ export async function deletePreference(event, context, callback) {
 //Updates the preferences of the user
 export async function update(event, context, callback) {
 	const data = JSON.parse(event.body);
+    console.log(data);
 	const docClient = new AWS.DynamoDB.DocumentClient();
 	const params = {
 		TableName: process.env.preferncestableName,
 		Key: {
 			preferenceId: event.pathParameters.id
 		},
-		UpdateExpression: "SET pomodoroSize = :prefPomodoroCount, shortBreakSize = :prefShortBreakSize, longBreakSize = :prefLongBreakSize, workSchedule = :prefWorkSchedule",
+		UpdateExpression: "SET pomodoroSize = :pomodoroSize, shortBreakSize = :shortBreakSize, longBreakSize = :longBreakSize, workSchedule = :workSchedule",
 		ExpressionAttributeValues: {
-				":prefPomodoroCount": data.prefPomodoroCount,
-				":prefShortBreakSize": data.prefShortBreakSize,
-				":prefLongBreakSize": data.prefLongBreakSize,
-				":prefWorkSchedule": data.prefWorkSchedule
+                ":pomodoroSize": data.pomodoroSize,
+                ":shortBreakSize": data.shortBreakSize,
+                ":longBreakSize": data.longBreakSize,
+                ":workSchedule": data.workSchedule,
 			},
 
 	};
