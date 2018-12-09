@@ -56,6 +56,11 @@ provider:
         - lambda:InvokeFunction
       Resource:
         - "*"
+    - Effect: Allow
+      Action:
+        - machinelearning:Predict
+      Resource:
+        - ${env:ML_ARN}
 functions:
   createUser:
     handler: userHandler.create
@@ -246,6 +251,14 @@ functions:
     events:
       - http:
           path: api/schedule
+          method: post
+          cors: true
+          authorizer: aws_iam
+  predictPomodoros:
+    handler: predictHandler.predict
+    events:
+      - http:
+          path: api/predict
           method: post
           cors: true
           authorizer: aws_iam
