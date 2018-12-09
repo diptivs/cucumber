@@ -249,6 +249,14 @@ functions:
           method: post
           cors: true
           authorizer: aws_iam
+  predictPomodoros:
+    handler: predictHandler.predict
+    events:
+      - http:
+          path: api/predict
+          method: post
+          cors: true
+          authorizer: aws_iam
 resources:
   - ${file(infrastructure/dynamodb.yml)}
   - ${file(infrastructure/cognito-userPool.yml)}
