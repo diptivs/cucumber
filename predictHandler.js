@@ -5,14 +5,12 @@ export async function predict(event, context, callback) {
 const data = JSON.parse(event.body);
 var machinelearning = new AWS.MachineLearning({region: "us-east-1"});
 var params = {
-  MLModelId: 'ml-clXq8NkhwhE', /* required */
+  MLModelId: 'ml-Aa8HA5feOkS', /* required */
   PredictEndpoint: 'https://realtime.machinelearning.us-east-1.amazonaws.com', /* required */
   Record: {
-	  "taskid":data.taskid,
-	  "keyword":data.keyword,
-	  "workdays": data.workingDays
-  }
-
+	  "taskId":data.taskId,
+	  "taskName":data.taskName
+	  }
   };
 try {
 var returnData = await machinelearning.predict(params).promise();
