@@ -240,17 +240,55 @@ async function incrPomodoroCount(taskId) {
 }
 
 /**
+ * Function gets predicted pomodoro counts for provided tasks and returns array
+ * of the same task with the number of entries based on predicted count.
+ * @param task - taskObject
+ * @return returns array of tasks
+ */
+async function getPredictedTasks(task) {
+    const lambda = new AWS.Lambda();
+    const taskJSON = JSON.stringify(task);
+    const params = {
+        FunctionName: lambdaName + "-predictPomodoros",
+        Payload: JSON.stringify({
+                "body": taskJSON,
+            })
+        };
+    var tasksArray = [];
+    var count = 0;
+    try {
+        console.log("in PredictTasks");
+        console.log("PARAMS", params);
+        const resp = await getLambda(lambda, params);
+        const payload = JSON.parse(resp.Payload);
+
+        console.log('getLambda returned payload', payload);
+        if (payload.body) {
+            count = Math.round(JSON.parse(payload.body).predictedValue);
+            console.log("PREDICTED VAL", count);
+        }
+        if (count) {
+            for (var i=0; i<count; i++) {
+                tasksArray.push(JSON.parse(taskJSON));
+            }
+        } else {
+            tasksArray.push(task);
+        }
+    } catch (e) {
+        console.log(e);
+    }
+    return tasksArray;
+}
+
+/**
  * Function that gets specified number of top tasks within the project
  * @param projectId - id of project
  * @param numTasks - number of tasks to return for the project
  * @return array containing project ids
  */
 async function getTasks(userId, projectId, numTasks) {
-    /*var tasks = await API.get("API", `/api/task?projectId={projectId}&taskStatus=new`);
-    if (tasks)
-        return tasks.Items.slice(0, numTasks);
-    else
-        return [];*/
+    var returnTasks = [];
+
     try{
         const lambda = new AWS.Lambda();
 
@@ -269,18 +307,26 @@ async function getTasks(userId, projectId, numTasks) {
         console.log(params);
         const resp = await getLambda(lambda, params);
         const payload = JSON.parse(resp.Payload);
+        var tasks = [];
 
         console.log('getLambda returned payload', payload);
-        console.log('numTasks', numTasks);
         if (payload.body)
-            return JSON.parse(payload.body).Items;
-            //return JSON.parse(payload.body).Items.slice(0, numTasks);
+            tasks = JSON.parse(payload.body).Items;
+
+        if (process.env.ml_enabled) {
+            for (var i in tasks) {
+                var predictedTasks = await getPredictedTasks(tasks[i]);
+                returnTasks = returnTasks.concat(predictedTasks);
+            }
+        } else {
+            returnTasks = tasks;
+        }
+        console.log(returnTasks);
     } catch (e) {
         console.log(e);
     }
-    return [];
+    return returnTasks;
 }
-
 
 /**
  * Function that gets specified number of top tasks within the project
